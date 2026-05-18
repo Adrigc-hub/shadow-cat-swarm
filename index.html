@@ -11,16 +11,24 @@
 <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- UI en Gameplay -->
+    <div id="editorUI">
+        <div class="editor-bar">
+            <div style="display:flex; gap:10px;">
+                <button id="btnTabRhythm" class="tab-btn active-tab" onclick="setEditorMode('RHYTHM')">🎵 Añadir Ritmos</button>
+                <button id="btnTabDeco" class="tab-btn" onclick="setEditorMode('DECO')">✨ Añadir Decoración</button>
+            </div>
+            <button class="save-btn" onclick="triggerSaveEditor()">💾 Guardar Nivel</button>
+        </div>
+    </div>
+
     <div id="inGameUI">
         <div id="scoreHUD">PUNTOS: 0</div>
         <div id="eventAlert">¡ALERTA!</div>
         <button class="hud-btn" id="pauseBtn">║</button>
     </div>
 
-    <!-- Menú De Inicio Principal -->
     <div id="mainMenu" class="screen active">
-        <h1 class="gd-title">Dash Cat<br><span style="font-size:24px; color:#00ffcc;">Custom Engine</span></h1>
+        <h1 class="gd-title">Dash Cat<br><span style="font-size:24px; color:#00ffcc;">Megumi Evolved</span></h1>
         <div class="menu-row">
             <button class="gd-btn sub" onclick="switchScreen('onlineMenu')">🔍</button>
             <button class="gd-btn green" id="playBtn">▶</button>
@@ -28,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Menú de Ajustes / Pausa -->
     <div id="pauseMenu" class="screen">
         <h2 class="gd-title" style="font-size:40px;">PAUSA</h2>
         <div class="menu-row">
@@ -37,45 +44,42 @@
         </div>
     </div>
 
-    <!-- Explorador / Lista de niveles de la comunidad (Lupa) -->
     <div id="onlineMenu" class="screen">
         <div class="gd-window">
             <button class="close-btn" onclick="switchScreen('mainMenu')">X</button>
-            <div class="window-title">BUSCAR NIVELES EN RED</div>
+            <div class="window-title">SELECCIONAR NIVEL</div>
             <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Escribe el nombre del mapa...">
+                <input type="text" id="searchInput" placeholder="Buscar por nombre...">
                 <button class="btn-action" onclick="searchLevels()">Buscar</button>
             </div>
             <div class="level-list" id="onlineLevelList"></div>
         </div>
     </div>
 
-    <!-- Gestión del Editor Local (Martillo) -->
     <div id="localLevelsMenu" class="screen">
         <div class="gd-window">
             <button class="close-btn" onclick="switchScreen('mainMenu')">X</button>
             <div class="window-title">MIS CREACIONES</div>
             <div style="margin-bottom:15px; display:flex; justify-content:flex-end;">
-                <button class="btn-action" style="background:#52c234; color:white;" onclick="switchScreen('editorSetupMenu')">¡NUEVO!</button>
+                <button class="btn-action" style="background:#52c234; color:white;" onclick="switchScreen('editorSetupMenu')">¡NEW!</button>
             </div>
             <div class="level-list" id="localLevelList"></div>
         </div>
     </div>
 
-    <!-- Panel para Configurar Nuevo Mapa -->
     <div id="editorSetupMenu" class="screen">
         <div class="gd-window">
             <button class="close-btn" onclick="switchScreen('localLevelsMenu')">X</button>
             <div class="window-title">NUEVO RITMO</div>
             <div class="editor-form">
                 <div class="form-group">
-                    <label>Nombre del Mapa:</label>
+                    <label>Nombre:</label>
                     <input type="text" id="levelNameInput" value="Cat Step Pro">
                 </div>
                 <div class="form-group">
                     <label>Color de Escenario:</label>
                     <select id="levelBgInput">
-                        <option value="#111a2e">Espacio Siniestro</option>
+                        <option value="#0a0a14">Vacío Sombra</option>
                         <option value="#340034">Dimensión Violeta</option>
                         <option value="#0d1f11">Laboratorio Ácido</option>
                     </select>
@@ -83,12 +87,12 @@
                 <div class="form-group">
                     <label>Color de Proyectiles:</label>
                     <select id="levelBulletColor">
-                        <option value="#00ffff">Plasma Eléctrico</option>
+                        <option value="#00e5ff">Plasma Eléctrico</option>
                         <option value="#ffaa00">Fuego Atómico</option>
                         <option value="#ff00ff">Destello Carmesí</option>
                     </select>
                 </div>
-                <button class="btn-action" style="background:#00e5ff; margin-top:20px;" onclick="startRhythmMapping()">Grabar Notas en Vivo</button>
+                <button class="btn-action" style="background:#00e5ff; margin-top:20px;" onclick="startRhythmMapping()">Diseñar Nivel en Vivo</button>
             </div>
         </div>
     </div>
