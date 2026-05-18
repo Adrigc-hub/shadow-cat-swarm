@@ -4,15 +4,30 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 600;
 
-// --- PERSISTENCIA Y CONTENIDOS (LOCAL / RED UNIFICADA) ---
+// --- PERSISTENCIA Y CONTENIDOS ---
 let localLevels = JSON.parse(localStorage.getItem('cat_dash_local_levels')) || [];
 
-// Canción de respaldo segura por si el servidor externo bloquea el audio original
-const safeTrack = "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1MB_MP3.mp3";
+// Canción principal solicitada: Sweet Dreams - Weezer (Link de respaldo de audio)
+const weezerTrack = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; 
 
 let globalOnlineLevels = [
-    { name: "Stereo Madness Cat", creator: "GD_Community", bg: "#161623", bulletColor: "#00ffff", track: safeTrack, beats: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0] },
-    { name: "Voxicat Realm", creator: "SystemMod", bg: "#340034", bulletColor: "#ff00ff", track: safeTrack, beats: [0.5, 1.2, 1.8, 2.5, 3.0, 3.6, 4.2, 5.0, 5.5, 6.2] }
+    { 
+        name: "Sweet Dreams (Weezer)", 
+        creator: "Adrigc", 
+        bg: "#161623", 
+        bulletColor: "#00ffff", 
+        track: weezerTrack, 
+        // Golpes rítmicos sincronizados con la intro y los versos de la canción
+        beats: [1.2, 2.4, 3.6, 4.8, 6.0, 7.2, 8.4, 9.6, 11.0, 12.2, 13.5, 14.8, 16.0, 17.2, 18.5, 20.0] 
+    },
+    { 
+        name: "Voxicat Madness", 
+        creator: "GD_Community", 
+        bg: "#340034", 
+        bulletColor: "#ff00ff", 
+        track: weezerTrack, 
+        beats: [0.5, 1.0, 1.5, 2.0, 2.8, 3.5, 4.0, 4.5, 5.2, 6.0] 
+    }
 ];
 
 let currentAudio = new Audio();
@@ -37,10 +52,14 @@ const rhythmBar = { x: 100, y: 510, width: 600, height: 45, speed: 380 };
 const DIRECTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
 const DIR_VECTORS = { 'UP': {x: 0, y: -90}, 'DOWN': {x: 0, y: 90}, 'LEFT': {x: -90, y: 0}, 'RIGHT': {x: 90, y: 0} };
 
-// --- GESTIÓN DE PANTALLAS ---
+// --- GESTIÓN DE PANTALLAS (CORREGIDO PARA EVITAR FALLOS) ---
 function switchScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+    }
     
     if(screenId === 'mainMenu') { 
         gameState = 'MENU'; 
@@ -51,20 +70,33 @@ function switchScreen(screenId) {
     if(screenId === 'localLevelsMenu') renderLocalLevels();
 }
 
+// Hacer la función accesible globalmente para los botones HTML antiguos
+window.switchScreen = switchScreen;
+
 function renderLocalLevels() {
     const list = document.getElementById('localLevelList');
     list.innerHTML = localLevels.length === 0 ? '<div style="text-align:center;color:#666;padding:20px;">No tienes niveles creados.</div>' : '';
+    
     localLevels.forEach((lvl, idx) => {
-        list.innerHTML += `<div class="level-item">
-            <div><strong>${lvl.name}</strong> <span style="color:#00ffcc;font-size:12px;">(${lvl.beats.length} notas)</span></div>
-            <button class="btn-action" style="background:#52c234;" onclick="playSelectedLevel(${idx}, 'local')">▶</button>
-        </div>`;
+        const item = document.createElement('div');
+        item.className = 'level-item';
+        item.innerHTML = `<div><strong>${lvl.name}</strong> <span style="color:#00ffcc;font-size:12px;">(${lvl.beats.length} notas)</span></div>`;
+        
+        const btn = document.createElement('button');
+        btn.className = 'btn-action';
+        btn.style.background = '#52c234';
+        btn.innerText = '▶';
+        btn.addEventListener('click', () => playSelectedLevel(idx, 'local'));
+        
+        item.appendChild(btn);
+        list.appendChild(item);
     });
 }
 
 function renderOnlineLevels(filter = "") {
     const list = document.getElementById('onlineLevelList');
     list.innerHTML = "";
+    
     const totalDatabase = [...globalOnlineLevels, ...localLevels.map(l => ({...l, creator: "MiAppLocal"}))];
     const filtered = totalDatabase.filter(l => l.name.toLowerCase().includes(filter.toLowerCase()));
 
@@ -72,39 +104,46 @@ function renderOnlineLevels(filter = "") {
         list.innerHTML = '<div style="text-align:center;color:#666;padding:20px;">Sin resultados globales.</div>';
         return;
     }
+
     filtered.forEach(lvl => {
-        list.innerHTML += `<div class="level-item">
-            <div><strong>${lvl.name}</strong><br><span style="color:#aaa;font-size:12px;">Por: ${lvl.creator}</span></div>
-            <button class="btn-action" style="background:#00d2ff;" onclick="playDirectLevel(${JSON.stringify(lvl).replace(/"/g, '&quot;')})">▶</button>
-        </div>`;
+        const item = document.createElement('div');
+        item.className = 'level-item';
+        item.innerHTML = `<div><strong>${lvl.name}</strong><br><span style="color:#aaa;font-size:12px;">Por: ${lvl.creator}</span></div>`;
+        
+        const btn = document.createElement('button');
+        btn.className = 'btn-action';
+        btn.style.background = '#00d2ff';
+        btn.innerText = '▶';
+        btn.addEventListener('click', () => playDirectLevel(lvl));
+        
+        item.appendChild(btn);
+        list.appendChild(item);
     });
 }
-
-function searchLevels() {
+window.searchLevels = function() {
     renderOnlineLevels(document.getElementById('searchInput').value);
-}
+};
 
 // --- MODO EDITOR EN VIVO ---
-function startRhythmMapping() {
+window.startRhythmMapping = function() {
     activeLevel = {
-        name: document.getElementById('levelNameInput').value,
-        track: document.getElementById('levelAudioInput').value || safeTrack,
+        name: document.getElementById('levelNameInput').value || "Nuevo Nivel",
+        track: document.getElementById('levelAudioInput').value || weezerTrack,
         bg: document.getElementById('levelBgInput').value,
         bulletColor: document.getElementById('levelBulletColor').value,
         beats: []
     };
     mappedBeats = [];
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    switchScreen('none'); // Oculta las demás interfaces
     gameState = 'MAPPING_EDITOR';
     
     currentAudio.src = activeLevel.track;
     currentAudio.load();
     currentAudio.play().catch(() => {
-        console.log("CORS o error detectado. Usando respaldo de audio seguro.");
-        currentAudio.src = safeTrack;
+        currentAudio.src = weezerTrack;
         currentAudio.play();
     });
-}
+};
 
 function saveCreatedLevel() {
     if(mappedBeats.length === 0) return alert("¡Toca la pantalla al ritmo antes de guardar!");
@@ -143,12 +182,12 @@ function initGameplay() {
     currentAudio.src = activeLevel.track;
     currentAudio.load();
     currentAudio.play().catch(() => {
-        currentAudio.src = safeTrack;
+        currentAudio.src = weezerTrack;
         currentAudio.play();
     });
 }
 
-// --- Detección de Gestos Móviles / Mouse ---
+// --- CONTROLES MÓVILES / MOUSE ---
 let touchStart = { x: 0, y: 0 };
 let isInteracting = false;
 
@@ -205,13 +244,27 @@ function createParticles(x, y, color) {
     for (let i = 0; i < 8; i++) particles.push({ x, y, vx: (Math.random()-0.5)*7, vy: (Math.random()-0.5)*7, radius: Math.random()*4+2, alpha: 1, color });
 }
 
-// UI Triggers Pausa
-document.getElementById('playBtn').addEventListener('click', () => playDirectLevel(globalOnlineLevels[0]));
-document.getElementById('pauseBtn').addEventListener('click', () => { if(gameState==='PLAYING'){ gameState='PAUSED'; currentAudio.pause(); switchScreen('pauseMenu'); } });
-document.getElementById('resumeBtn').addEventListener('click', () => { document.getElementById('pauseMenu').classList.remove('active'); document.getElementById('inGameUI').style.display='block'; gameState='PLAYING'; currentAudio.play(); });
+// --- VÍNCULOS SEGUROS CON LOS BOTONES DE LA INTERFAZ ---
+document.getElementById('playBtn').addEventListener('click', () => {
+    // El botón verde central ahora abre directamente el nivel de Weezer
+    playDirectLevel(globalOnlineLevels[0]);
+});
+
+document.getElementById('pauseBtn').addEventListener('click', () => { 
+    if(gameState==='PLAYING'){ gameState='PAUSED'; currentAudio.pause(); switchScreen('pauseMenu'); } 
+});
+
+document.getElementById('resumeBtn').addEventListener('click', () => { 
+    document.getElementById('pauseMenu').classList.remove('active'); 
+    document.getElementById('inGameUI').style.display='block'; 
+    gameState='PLAYING'; 
+    currentAudio.play(); 
+});
+
 document.getElementById('exitBtn').addEventListener('click', () => switchScreen('mainMenu'));
 
 // --- BUCLE CENTRAL DE ACTUALIZACIÓN ---
+let lastTime = 0;
 function coreLoop(timestamp) {
     let dt = (timestamp - lastTime) / 1000; if(isNaN(dt)) dt = 0; lastTime = timestamp;
 
@@ -315,5 +368,5 @@ function coreLoop(timestamp) {
     requestAnimationFrame(coreLoop);
 }
 
-let lastTime = 0;
 requestAnimationFrame(coreLoop);
+
