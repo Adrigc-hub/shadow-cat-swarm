@@ -3,71 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dash Cat: Rhythm Editor</title>
-    <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
-        body { background-color: #000; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; color: white; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        
-        #gameContainer { position: relative; width: 100vw; height: 100vh; max-width: 800px; max-height: 600px; background: #111; overflow: hidden; box-shadow: 0 0 30px rgba(0,255,200,0.2); }
-        canvas { width: 100%; height: 100%; display: block; background: #000; }
-
-        /* Pantallas del Sistema */
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background-size: cover; background-position: center; z-index: 10; }
-        .active { display: flex; }
-
-        /* Estilo Menú Principal (Inspirado en GD) */
-        #mainMenu { background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%); }
-        .gd-title { font-size: 54px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 4px #000, 0 8px #00e5ff; letter-spacing: 2px; margin-bottom: 50px; text-align: center; }
-        .menu-row { display: flex; gap: 30px; }
-        .gd-btn { width: 110px; height: 110px; border-radius: 20px; border: 4px solid #fff; background: linear-gradient(to bottom, #00d2ff, #0066ff); box-shadow: 0 8px 0 #0033aa, 0 10px 20px rgba(0,0,0,0.5); cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 40px; transition: transform 0.1s; }
-        .gd-btn:active { transform: scale(0.9) translateY(4px); box-shadow: 0 4px 0 #0033aa; }
-        .gd-btn.green { background: linear-gradient(to bottom, #52c234, #061700); box-shadow: 0 8px 0 #0b4400; }
-        .gd-btn.sub { width: 70px; height: 70px; font-size: 24px; background: linear-gradient(to bottom, #ff9900, #ff5500); box-shadow: 0 6px 0 #992200; }
-
-        /* Interfaz Online y Editor */
-        .gd-window { width: 85%; height: 80%; background: rgba(0, 0, 0, 0.85); border: 4px solid #00e5ff; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; position: relative; }
-        .window-title { font-size: 28px; text-shadow: 2px 2px #000; text-align: center; margin-bottom: 15px; color: #00e5ff; font-weight: bold;}
-        .close-btn { position: absolute; top: -15px; right: -15px; width: 40px; height: 40px; border-radius: 50%; background: #ff3333; border: 2px solid #fff; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-        
-        /* Lista y Buscador */
-        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; }
-        .search-bar input, .editor-form input, .editor-form select { flex: 1; padding: 10px; border-radius: 5px; border: 2px solid #00e5ff; background: #222; color: #fff; font-size: 16px; }
-        .btn-action { padding: 10px 20px; background: #00e5ff; border: none; border-radius: 5px; color: #000; font-weight: bold; cursor: pointer; }
-        .level-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
-        .level-item { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #00e5ff; }
-
-        /* UI del Juego */
-        #inGameUI { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 5; }
-        .hud-btn { pointer-events: auto; position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; background: rgba(0,0,0,0.6); border: 2px solid #fff; border-radius: 10px; color: white; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-        #scoreHUD { position: absolute; top: 15px; left: 15px; font-size: 24px; font-weight: bold; text-shadow: 2px 2px #000; }
-        #eventAlert { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); font-size: 32px; font-weight: bold; color: #ff3333; text-shadow: 0 0 10px #ff0000; display: none; text-transform: uppercase; animation: pulse 0.5s infinite alternate; }
-
-        /* Menú Pausa */
-        #pauseMenu { background: rgba(0,0,0,0.75); z-index: 20; }
-
-        /* Editor Layout */
-        .editor-form { display: flex; flex-direction: column; gap: 12px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-
-        @keyframes pulse { from { transform: translateX(-50%) scale(0.95); } to { transform: translateX(-50%) scale(1.05); } }
-    </style>
+    <title>Dash Cat: Rhythm Evolved</title>
+    <!-- Vinculamos los estilos externos -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="gameContainer">
-    <!-- CANVAS DEL JUEGO -->
+    <!-- El lienzo del juego -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD DURANTE LA PARTIDA -->
+    <!-- HUD de partida activa -->
     <div id="inGameUI">
         <div id="scoreHUD">PUNTOS: 0</div>
-        <div id="eventAlert">¡ALERTA DE EVENTO!</div>
+        <div id="eventAlert">¡ALERTA!</div>
         <button class="hud-btn" id="pauseBtn">║</button>
     </div>
 
-    <!-- MENÚ PRINCIPAL -->
+    <!-- Pantalla: Menú Principal -->
     <div id="mainMenu" class="screen active">
-        <h1 class="gd-title">Dash Cat<br><span style="font-size:24px; color:#00ffcc;">Rhythm Gg</span></h1>
+        <h1 class="gd-title">Dash Cat<br><span style="font-size:24px; color:#00ffcc;">Custom Engine</span></h1>
         <div class="menu-row">
             <button class="gd-btn sub" onclick="switchScreen('onlineMenu')">🔍</button>
             <button class="gd-btn green" id="playBtn">▶</button>
@@ -75,555 +30,78 @@
         </div>
     </div>
 
-    <!-- MENÚ PAUSA -->
+    <!-- Pantalla: Menú Pausa -->
     <div id="pauseMenu" class="screen">
         <h2 class="gd-title" style="font-size:40px;">PAUSA</h2>
         <div class="menu-row">
-            <button class="gd-btn green" id="resumeBtn" style="font-size:28px;">▶</button>
-            <button class="gd-btn" id="exitBtn" style="background:linear-gradient(to bottom, #ff3333, #aa0000); box-shadow:0 8px 0 #550000; font-size:28px;"> cancl</button>
+            <button class="gd-btn green" id="resumeBtn">▶</button>
+            <button class="gd-btn" id="exitBtn" style="background:linear-gradient(to bottom, #ff3333, #aa0000); box-shadow:0 8px 0 #550000;">✖</button>
         </div>
     </div>
 
-    <!-- INTERFAZ ONLINE (BÚSQUEDA TIPO GD) -->
+    <!-- Pantalla: Buscador Online Global -->
     <div id="onlineMenu" class="screen">
         <div class="gd-window">
             <button class="close-btn" onclick="switchScreen('mainMenu')">X</button>
-            <div class="window-title">BUSCAR NIVELES EN LÍNEA</div>
+            <div class="window-title">BUSCAR NIVELES EN RED</div>
             <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Buscar por nombre del nivel...">
+                <input type="text" id="searchInput" placeholder="Buscar nivel por nombre...">
                 <button class="btn-action" onclick="searchLevels()">Buscar</button>
             </div>
-            <div class="level-list" id="onlineLevelList">
-                <!-- Niveles cargados por código o simulados de la comunidad -->
-            </div>
+            <div class="level-list" id="onlineLevelList"></div>
         </div>
     </div>
 
-    <!-- INTERFAZ CREACIONES PROPIAS (LOCAL LIST) -->
+    <!-- Pantalla: Mis Niveles (Editor local) -->
     <div id="localLevelsMenu" class="screen">
         <div class="gd-window">
             <button class="close-btn" onclick="switchScreen('mainMenu')">X</button>
-            <div class="window-title">MIS NIVELES</div>
+            <div class="window-title">MIS CREACIONES</div>
             <div style="margin-bottom:15px; display:flex; justify-content:flex-end;">
                 <button class="btn-action" style="background:#52c234; color:white;" onclick="switchScreen('editorSetupMenu')">¡NEW!</button>
             </div>
-            <div class="level-list" id="localLevelList">
-                <!-- Niveles creados por el usuario localmente -->
-            </div>
+            <div class="level-list" id="localLevelList"></div>
         </div>
     </div>
 
-    <!-- INTERFAZ CONFIGURACIÓN / NUEO NIVEL (EDITOR) -->
+    <!-- Pantalla: Configurar Nuevo Nivel -->
     <div id="editorSetupMenu" class="screen">
         <div class="gd-window">
             <button class="close-btn" onclick="switchScreen('localLevelsMenu')">X</button>
-            <div class="window-title">CREAR NUEVO NIVEL</div>
+            <div class="window-title">NUEVO RITMO</div>
             <div class="editor-form">
                 <div class="form-group">
-                    <label>Nombre del Nivel:</label>
-                    <input type="text" id="levelNameInput" value="Mi Nivel Cat">
+                    <label>Nombre:</label>
+                    <input type="text" id="levelNameInput" value="Cat Step">
                 </div>
                 <div class="form-group">
-                    <label>URL de Canción Real (Audio MP3 Directo):</label>
-                    <input type="text" id="levelAudioInput" value="https://actions.google.com/sounds/v1/science_fiction/glitch_bass.ogg" placeholder="Pega un enlace .mp3 o .ogg directo">
+                    <label>Audio URL (Asegúrate de usar links estables libres de CORS):</label>
+                    <input type="text" id="levelAudioInput" value="https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1MB_MP3.mp3">
                 </div>
                 <div class="form-group">
-                    <label>Decoración de Fondo:</label>
+                    <label>Fondo de Escenario:</label>
                     <select id="levelBgInput">
-                        <option value="#161623">Espacio Oscuro</option>
-                        <option value="#340034">Infierno Morado</option>
-                        <option value="#002b11">Bosque Hacker</option>
+                        <option value="#161623">Espacio Siniestro</option>
+                        <option value="#340034">Dimensión Violeta</option>
+                        <option value="#0d1f11">Laboratorio Ácido</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Color de las Balas:</label>
+                    <label>Color de Proyectiles:</label>
                     <select id="levelBulletColor">
-                        <option value="#ffaa00">Fuego Neón</option>
-                        <option value="#00ffff">Cian Eléctrico</option>
-                        <option value="#ff00ff">Rosa Destello</option>
+                        <option value="#ffaa00">Fuego Atómico</option>
+                        <option value="#00ffff">Plasma Eléctrico</option>
+                        <option value="#ff00ff">Destello Carmesí</option>
                     </select>
                 </div>
-                <button class="btn-action" style="background:#00e5ff; margin-top:10px;" onclick="startRhythmMapping()">Grabar / Diseñar Ritmos</button>
+                <button class="btn-action" style="background:#00e5ff; margin-top:10px;" onclick="startRhythmMapping()">Grabar Notas en Vivo</button>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-canvas.width = 800;
-canvas.height = 600;
-
-// --- BASE DE DATOS LOCAL Y ONLINE SIMULADA ---
-let localLevels = JSON.parse(localStorage.getItem('cat_dash_local_levels')) || [];
-let globalOnlineLevels = [
-    { name: "Stereo Madness Cat", creator: "GoogleUser", bg: "#161623", bulletColor: "#ffaa00", track: "https://actions.google.com/sounds/v1/science_fiction/glitch_bass.ogg", beats: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0] },
-    { name: "BloodCat", creator: "VoxicatMod", bg: "#340034", bulletColor: "#ff00ff", track: "https://actions.google.com/sounds/v1/science_fiction/glitch_bass.ogg", beats: [0.5, 0.75, 1.2, 1.5, 2.0, 2.3, 3.0, 3.5, 4.0] }
-];
-
-// --- AUDIO GLOBAL CONTROLLER ---
-let currentAudio = new Audio();
-currentAudio.crossOrigin = "anonymous";
-
-// --- ESTADOS ---
-let gameState = 'MENU'; // MENU, PLAYING, PAUSED, MAPPING_EDITOR
-let activeLevel = null;
-let currentScore = 0;
-let isMappingMode = false;
-
-// --- ENTIDADES ---
-let cat = { x: 400, y: 300, targetX: 400, targetY: 300, radius: 25, color: '#ff007f', squishX: 1, squishY: 1 };
-let bullets = [];
-let rhythmPoints = [];
-let particles = [];
-let afterImages = []; // Efecto After Frames
-
-// Eventos Aleatorios en la partida
-let activeEvent = null;
-let eventTimer = 0;
-
-const rhythmBar = { x: 100, y: 510, width: 600, height: 45, speed: 380 };
-const DIRECTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
-const DIR_VECTORS = { 'UP': {x: 0, y: -90}, 'DOWN': {x: 0, y: 90}, 'LEFT': {x: -90, y: 0}, 'RIGHT': {x: 90, y: 0} };
-
-// --- NAVEGACIÓN ENTRE INTEGRACIONES DE INTERFAZ ---
-function switchScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-    
-    if(screenId === 'mainMenu') { gameState = 'MENU'; currentAudio.pause(); }
-    if(screenId === 'onlineMenu') renderOnlineLevels();
-    if(screenId === 'localLevelsMenu') renderLocalLevels();
-}
-
-// --- RENDERS DE LISTAS ---
-function renderLocalLevels() {
-    const list = document.getElementById('localLevelList');
-    list.innerHTML = localLevels.length === 0 ? '<div style="text-align:center;color:#666;">No tienes niveles. ¡Crea uno nuevo!</div>' : '';
-    localLevels.forEach((lvl, index) => {
-        list.innerHTML += `<div class="level-item">
-            <div><strong>${lvl.name}</strong> <span style="font-size:12px; color:#00ffcc;">(${lvl.beats.length} Notas)</span></div>
-            <button class="btn-action" style="background:#52c234;" onclick="playSelectedLevel(${index}, 'local')">▶</button>
-        </div>`;
-    });
-}
-
-function renderOnlineLevels(filter = "") {
-    const list = document.getElementById('onlineLevelList');
-    list.innerHTML = "";
-    // Fusiona bases de datos para buscar en conjunto (Locales, Apps y Webs unificadas)
-    const allCombined = [...globalOnlineLevels, ...localLevels.map(l => ({...l, creator: "LocalUser"}))];
-    
-    const filtered = allCombined.filter(l => l.name.toLowerCase().includes(filter.toLowerCase()));
-    
-    if(filtered.length === 0) {
-        list.innerHTML = '<div style="text-align:center;color:#666;">No se encontraron niveles en la red global.</div>';
-        return;
-    }
-
-    filtered.forEach(lvl => {
-        list.innerHTML += `<div class="level-item">
-            <div><strong>${lvl.name}</strong> <br><span style="font-size:12px; color:#aaa;">Por: ${lvl.creator || "Desconocido"}</span></div>
-            <button class="btn-action" style="background:#00d2ff;" onclick="playDirectLevel(${JSON.stringify(lvl).replace(/"/g, '&quot;')})">▶</button>
-        </div>`;
-    });
-}
-
-function searchLevels() {
-    const query = document.getElementById('searchInput').value;
-    renderOnlineLevels(query);
-}
-
-// --- MODO EDITOR INTERACTIVO (RHYTHM MAPPING) ---
-let mappedBeats = [];
-function startRhythmMapping() {
-    const name = document.getElementById('levelNameInput').value;
-    const trackUrl = document.getElementById('levelAudioInput').value;
-    const bg = document.getElementById('levelBgInput').value;
-    const bulletColor = document.getElementById('levelBulletColor').value;
-
-    activeLevel = { name, track: trackUrl, bg, bulletColor, beats: [] };
-    mappedBeats = [];
-    
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    gameState = 'MAPPING_EDITOR';
-    
-    // Iniciar Música para capturar los toques en tiempo real
-    currentAudio.src = trackUrl;
-    currentAudio.load();
-    currentAudio.play().catch(e => alert("Error cargando la canción: Verifica que sea un link directo válido .mp3"));
-    
-    // Escucha de clics en la pantalla para añadir notas al ritmo
-    alert("¡MODO GRABACIÓN DE RITMO ACTIVADO!\nToca la pantalla al ritmo de la música para colocar los puntos de esquive. El juego registrará el tiempo exacto.");
-}
-
-// Guardar lo que se editó
-function saveCreatedLevel() {
-    if(mappedBeats.length === 0) {
-        alert("No añadiste ritmos. Toca la pantalla mientras corre la música antes de guardar.");
-        return;
-    }
-    activeLevel.beats = [...mappedBeats];
-    localLevels.push(activeLevel);
-    localStorage.setItem('cat_dash_local_levels', JSON.stringify(localLevels));
-    currentAudio.pause();
-    switchScreen('localLevelsMenu');
-}
-
-// --- INICIALIZADORES DE JUEGO ---
-function playSelectedLevel(index, type) {
-    activeLevel = type === 'local' ? localLevels[index] : globalOnlineLevels[index];
-    initGameplay();
-}
-
-function playDirectLevel(lvlObject) {
-    activeLevel = lvlObject;
-    initGameplay();
-}
-
-function initGameplay() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('inGameUI').style.display = 'block';
-    
-    currentScore = 0;
-    document.getElementById('scoreHUD').innerText = "PUNTOS: 0";
-    bullets = [];
-    rhythmPoints = [];
-    particles = [];
-    afterImages = [];
-    activeEvent = null;
-    eventTimer = 0;
-
-    gameState = 'PLAYING';
-
-    // Montar nodos de ritmo según los segundos configurados en el nivel
-    activeLevel.beats.forEach(timeTrigger => {
-        const randomDir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
-        rhythmPoints.push({
-            triggerTime: timeTrigger,
-            direction: randomDir,
-            spawned: false,
-            hit: false,
-            x: rhythmBar.x + rhythmBar.width
-        });
-    });
-
-    currentAudio.src = activeLevel.track;
-    currentAudio.load();
-    currentAudio.play();
-}
-
-// --- INPUTS: SWIPES Y CONFIGURACIÓN TÁCTIL ---
-let touchStart = { x: 0, y: 0 };
-let isInteracting = false;
-
-function handleStart(x, y) {
-    if (gameState === 'MAPPING_EDITOR') {
-        // En el editor guarda el segundo exacto donde diste el toque
-        mappedBeats.push(currentAudio.currentTime);
-        createParticles(x, y, '#00ffcc');
-        return;
-    }
-    touchStart.x = x;
-    touchStart.y = y;
-    isInteracting = true;
-}
-
-function handleMove(x, y) {
-    if (!isInteracting || gameState !== 'PLAYING') return;
-    
-    const dx = x - touchStart.x;
-    const dy = y - touchStart.y;
-    const threshold = 35; 
-
-    if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
-        let direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'RIGHT' : 'LEFT') : (dy > 0 ? 'DOWN' : 'UP');
-        checkSwipe(direction);
-        isInteracting = false;
-    }
-}
-
-// Capturadores Canvas
-canvas.addEventListener('mousedown', (e) => { const r = canvas.getBoundingClientRect(); handleStart((e.clientX - r.left) * (800 / r.width), (e.clientY - r.top) * (600 / r.height)); });
-canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); handleMove((e.clientX - r.left) * (800 / r.width), (e.clientY - r.top) * (600 / r.height)); });
-window.addEventListener('mouseup', () => isInteracting = false);
-canvas.addEventListener('touchstart', (e) => { const r = canvas.getBoundingClientRect(); const t = e.touches[0]; handleStart((t.clientX - r.left) * (800 / r.width), (t.clientY - r.top) * (600 / r.height)); });
-canvas.addEventListener('touchmove', (e) => { const r = canvas.getBoundingClientRect(); const t = e.touches[0]; handleMove((t.clientX - r.left) * (800 / r.width), (t.clientY - r.top) * (600 / r.height)); });
-window.addEventListener('touchend', () => isInteracting = false);
-
-
-// --- MECÁNICAS DE RITMO Y COLISIONES ---
-function checkSwipe(direction) {
-    let success = false;
-    for (let pt of rhythmPoints) {
-        // Círculo de impacto más grande (Rango expandido a 45px para mejor responsividad)
-        let distance = Math.abs(pt.x - rhythmBar.x);
-        if (distance < 45 && pt.direction === direction && !pt.hit && pt.spawned) {
-            pt.hit = true;
-            success = true;
-            currentScore += 10;
-            document.getElementById('scoreHUD').innerText = "PUNTOS: " + currentScore;
-
-            // Almacenar After Frames (Estelas de movimiento fluido)
-            for(let i=1; i<=3; i++) {
-                afterImages.push({ x: cat.x, y: cat.y, alpha: 0.6 - (i*0.15), delay: i * 3, radius: cat.radius });
-            }
-
-            // Desplazamiento del Gato
-            const vec = DIR_VECTORS[direction];
-            cat.targetX = 400 + vec.x;
-            cat.targetY = 300 + vec.y;
-            cat.squishX = (direction==='LEFT' || direction==='RIGHT') ? 1.5 : 0.5;
-            cat.squishY = (direction==='UP' || direction==='DOWN') ? 1.5 : 0.5;
-
-            createParticles(pt.x, rhythmBar.y + rhythmBar.height/2, '#00ffcc');
-            break;
-        }
-    }
-    if(!success) {
-        cat.color = '#ff3333';
-        setTimeout(() => cat.color = '#ff007f', 100);
-    }
-}
-
-function spawnBullet(direction) {
-    let startX = cat.x, startY = cat.y;
-    if (direction === 'UP') startY = -20;
-    if (direction === 'DOWN') startY = 620;
-    if (direction === 'LEFT') startX = -20;
-    if (direction === 'RIGHT') startX = 820;
-
-    bullets.push({
-        x: startX, y: startY, targetX: 400, targetY: 300, progress: 0,
-        speed: 1 / (rhythmBar.width / rhythmBar.speed)
-    });
-}
-
-function createParticles(x, y, color) {
-    for (let i = 0; i < 8; i++) {
-        particles.push({ x: x, y: y, vx: (Math.random()-0.5)*7, vy: (Math.random()-0.5)*7, radius: Math.random()*4+2, alpha: 1, color });
-    }
-}
-
-// --- CONTROLES DE PAUSA / SALIDA ---
-document.getElementById('playBtn').addEventListener('click', () => {
-    // Carga directa del primer nivel online predefinido por defecto
-    playDirectLevel(globalOnlineLevels[0]);
-});
-document.getElementById('pauseBtn').addEventListener('click', () => {
-    if(gameState === 'PLAYING') { gameState = 'PAUSED'; currentAudio.pause(); switchScreen('pauseMenu'); }
-});
-document.getElementById('resumeBtn').addEventListener('click', () => {
-    document.getElementById('pauseMenu').classList.remove('active');
-    document.getElementById('inGameUI').style.display = 'block';
-    gameState = 'PLAYING';
-    currentAudio.play();
-});
-document.getElementById('exitBtn').addEventListener('click', () => {
-    document.getElementById('inGameUI').style.display = 'none';
-    switchScreen('mainMenu');
-});
-
-
-// --- CICLO RENDER / MOTOR GRÁFICO (60 FPS FLUIDOS) ---
-let lastTime = 0;
-
-function coreLoop(timestamp) {
-    if (!lastTime) lastTime = timestamp;
-    let dt = (timestamp - lastTime) / 1000;
-    lastTime = timestamp;
-
-    // Fondos dinámicos basados en la personalización del nivel
-    ctx.fillStyle = (gameState === 'PLAYING' || gameState === 'MAPPING_EDITOR') ? activeLevel.bg : '#11111e';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    if (gameState === 'PLAYING') {
-        let currentTime = currentAudio.currentTime;
-
-        // --- SISTEMA DE MINI EVENTOS EN VIVO ---
-        eventTimer += dt;
-        if(eventTimer > 12) { // Cambia o genera evento cada 12 segundos
-            eventTimer = 0;
-            activeEvent = Math.random() > 0.5 ? 'SPEED_UP' : 'CEGUERA';
-            const alertEl = document.getElementById('eventAlert');
-            alertEl.innerText = activeEvent === 'SPEED_UP' ? "¡EVENTO: TIEMPO ACELERADO!" : "¡EVENTO: OSCURIDAD!";
-            alertEl.style.display = 'block';
-            setTimeout(() => alertEl.style.display = 'none', 3000);
-        }
-
-        let currentBarSpeed = rhythmBar.speed;
-        if(activeEvent === 'SPEED_UP') currentBarSpeed *= 1.35; // El evento altera mecánicas en vivo
-
-        // Sincronizar spawns usando la marca de tiempo exacta de la música
-        rhythmPoints.forEach(pt => {
-            // Tiempo estimado que tarda el nodo en recorrer la barra hacia la línea de impacto
-            let targetLeadTime = rhythmBar.width / currentBarSpeed;
-            if (currentTime >= (pt.triggerTime - targetLeadTime) && !pt.spawned) {
-                pt.spawned = true;
-                spawnBullet(pt.direction);
-            }
-        });
-
-        // Actualizar Nodos de Ritmo
-        rhythmPoints.forEach(pt => {
-            if (pt.spawned && !pt.hit) {
-                // Cálculo de posición en pixeles en base al tiempo restante real
-                let timeRemaining = pt.triggerTime - currentTime;
-                pt.x = rhythmBar.x + (timeRemaining * currentBarSpeed);
-            }
-        });
-
-        // Dibujar Barra de Ritmo
-        ctx.fillStyle = 'rgba(40, 40, 60, 0.8)';
-        ctx.fillRect(rhythmBar.x, rhythmBar.y, rhythmBar.width, rhythmBar.height);
-        
-        // Círculo Objetivo (Línea de colisión optimizada y agrandada)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(rhythmBar.x, rhythmBar.y + rhythmBar.height/2, 30, 0, Math.PI*2); // Círculo de esquive más grande
-        ctx.fill();
-        ctx.stroke();
-
-        // Dibujar Notas / Flechas de Ritmo
-        rhythmPoints.forEach(pt => {
-            if (pt.spawned && !pt.hit && pt.x >= rhythmBar.x - 30) {
-                ctx.fillStyle = '#00e5ff';
-                ctx.beginPath();
-                ctx.arc(pt.x, rhythmBar.y + rhythmBar.height/2, 18, 0, Math.PI*2);
-                ctx.fill();
-                
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 18px Arial';
-                let arrow = pt.direction === 'UP'?'↑':pt.direction==='DOWN'?'↓':pt.direction==='LEFT'?'←':'→';
-                ctx.fillText(arrow, pt.x - 7, rhythmBar.y + rhythmBar.height/2 + 6);
-            }
-        });
-
-        // --- ACTUALIZAR AFTER FRAMES (EFECTO ESTELA) ---
-        for (let i = afterImages.length - 1; i >= 0; i--) {
-            let img = afterImages[i];
-            img.delay--;
-            if(img.delay <= 0) {
-                ctx.save();
-                ctx.globalAlpha = img.alpha;
-                ctx.fillStyle = '#00e5ff'; // Sombra Cian Neón tipo Dash
-                ctx.beginPath();
-                ctx.arc(img.x, img.y, img.radius, 0, Math.PI*2);
-                ctx.fill();
-                ctx.restore();
-                img.alpha -= 0.1;
-                if(img.alpha <= 0) afterImages.splice(i, 1);
-            }
-        }
-
-        // Actualizar e Interpolar Gato
-        cat.x += (cat.targetX - cat.x) * 0.22;
-        cat.y += (cat.targetY - cat.y) * 0.22;
-        cat.targetX += (400 - cat.targetX) * 0.06;
-        cat.targetY += (300 - cat.targetY) * 0.06;
-        cat.squishX += (1 - cat.squishX) * 0.12;
-        cat.squishY += (1 - cat.squishY) * 0.12;
-
-        // Dibujar Gato Principal
-        ctx.save();
-        ctx.translate(cat.x, cat.y);
-        ctx.scale(cat.squishX, cat.squishY);
-        ctx.fillStyle = cat.color;
-        ctx.beginPath(); ctx.arc(0, 0, cat.radius, 0, Math.PI*2); ctx.fill();
-        // Orejas
-        ctx.beginPath(); ctx.moveTo(-12,-15); ctx.lineTo(-22,-32); ctx.lineTo(-4,-20); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(12,-15); ctx.lineTo(22,-32); ctx.lineTo(4,-20); ctx.fill();
-        ctx.restore();
-
-        // Actualizar y Renderizar Balas Personalizadas
-        let bulletColor = activeLevel.bulletColor || '#ffaa00';
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            let b = bullets[i];
-            b.progress += b.speed * dt;
-            let bx = b.x + (b.targetX - b.x) * b.progress;
-            let by = b.y + (b.targetY - b.y) * b.progress;
-
-            ctx.fillStyle = bulletColor;
-            ctx.shadowColor = bulletColor;
-            ctx.shadowBlur = 12;
-            ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0;
-
-            if (b.progress >= 1.0) {
-                let hitDist = Math.hypot(cat.x - b.targetX, cat.y - b.targetY);
-                if (hitDist < 35) { // Colisión central
-                    createParticles(cat.x, cat.y, '#ff0000');
-                    currentScore = Math.max(0, currentScore - 6);
-                    document.getElementById('scoreHUD').innerText = "PUNTOS: " + currentScore;
-                }
-                bullets.splice(i, 1);
-            }
-        }
-
-        // Efecto Evento Ceguera
-        if(activeEvent === 'CEGUERA') {
-            ctx.fillStyle = 'rgba(0,0,0,0.82)';
-            ctx.beginPath();
-            ctx.arc(cat.x, cat.y, 140, 0, Math.PI*2);
-            ctx.rect(800, 0, -800, 600);
-            ctx.fill();
-        }
-
-        // Finalización automática al acabar el audio
-        if(currentAudio.ended) {
-            alert(`¡Nivel Completado!\nPuntuación final: ${currentScore}`);
-            switchScreen('mainMenu');
-        }
-    }
-    
-    if (gameState === 'MAPPING_EDITOR') {
-        // Interfaz de grabación simplificada
-        ctx.fillStyle = 'white';
-        ctx.font = '20px Arial';
-        ctx.fillText(`Notas Grabadas: ${mappedBeats.length}`, 30, 50);
-        ctx.fillText(`Tiempo actual: ${currentAudio.currentTime.toFixed(2)}s`, 30, 80);
-        
-        ctx.fillStyle = '#52c234';
-        ctx.fillRect(250, 500, 300, 50);
-        ctx.fillStyle = 'white';
-        ctx.fillText("BOTÓN: GUARDAR NIVEL", 290, 532);
-
-        // Si la canción termina o el usuario da clic en el recuadro verde inferior, guarda
-        if(currentAudio.ended) { saveCreatedLevel(); }
-    }
-
-    // Dibujar partículas genéricas
-    for (let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= dt * 2.2;
-        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
-        ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
-    }
-    ctx.globalAlpha = 1.0;
-
-    requestAnimationFrame(coreLoop);
-}
-
-// Inicializar detector táctil del botón de guardar en el editor
-canvas.addEventListener('click', (e) => {
-    if(gameState === 'MAPPING_EDITOR') {
-        const r = canvas.getBoundingClientRect();
-        let clickX = (e.clientX - r.left) * (800 / r.width);
-        let clickY = (e.clientY - r.top) * (600 / r.height);
-        // Detecta colisión sobre el recuadro verde de guardar
-        if(clickX >= 250 && clickX <= 550 && clickY >= 500 && clickY <= 550) {
-            saveCreatedLevel();
-        }
-    }
-});
-
-// Arrancar loop
-requestAnimationFrame(coreLoop);
-</script>
+<!-- Vinculamos el motor del juego al final para que cargue la interfaz primero -->
+<script src="game.js"></script>
 </body>
 </html>
 
