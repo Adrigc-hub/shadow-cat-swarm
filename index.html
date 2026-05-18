@@ -3,91 +3,434 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shadow Cat Dash</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Ritmo Gato: Dodge Master</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 800px;
+            max-height: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #161623, #1f1f2e);
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        #startBtn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 40px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+            transition: transform 0.2s;
+        }
+        #startBtn:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+    </style>
 </head>
 <body>
 
-    <div id="game-container">
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-layer">Puntos: <span id="score">0</span></div>
+    <button id="startBtn">¡Iniciar Juego!</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const startBtn = document.getElementById('startBtn');
+
+// Ajuste de resolución interno
+canvas.width = 800;
+canvas.height = 600;
+
+// --- CONFIGURACIÓN DEL AUDIO ---
+// Usamos el Web Audio API para generar un ritmo synthwave sin depender de archivos externos
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let bpm = 120; 
+let beatInterval = 60 / bpm; // Segundos por beat (0.5s en 120 BPM)
+let nextBeatTime = 0;
+let isPlaying = false;
+
+function playBeatSound(time, pitch = 150, duration = 0.1) {
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.frequency.setValueAtTime(pitch, time);
+    gain.gain.setValueAtTime(0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+    
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+// --- ESTADO DEL JUEGO ---
+let score = 0;
+let cat = {
+    x: 400,
+    y: 300,
+    targetX: 400,
+    targetY: 300,
+    radius: 25,
+    color: '#ff007f',
+    squishX: 1,
+    squishY: 1
+};
+
+let bullets = [];
+let rhythmPoints = [];
+let particles = [];
+
+// Barra de ritmo (Abajo)
+const rhythmBar = {
+    x: 100,
+    y: 520,
+    width: 600,
+    height: 40,
+    lineX: 100,
+    speed: 400 // Píxeles por segundo
+};
+
+// Direcciones posibles para esquivar
+const DIRECTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+const DIR_VECTORS = {
+    'UP': {x: 0, y: -80},
+    'DOWN': {x: 0, y: 80},
+    'LEFT': {x: -80, y: 0},
+    'RIGHT': {x: 80, y: 0}
+};
+
+// --- ENTRADA DE USUARIO (SWIPE / ARRASTRE) ---
+let touchStart = { x: 0, y: 0 };
+let isInteracting = false;
+
+function handleStart(x, y) {
+    touchStart.x = x;
+    touchStart.y = y;
+    isInteracting = true;
+}
+
+function handleMove(x, y) {
+    if (!isInteracting) return;
+    
+    const dx = x - touchStart.x;
+    const dy = y - touchStart.y;
+    const threshold = 40; // Distancia mínima para detectar el deslizamiento
+
+    if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+        let direction = '';
+        if (Math.abs(dx) > Math.abs(dy)) {
+            direction = dx > 0 ? 'RIGHT' : 'LEFT';
+        } else {
+            direction = dy > 0 ? 'DOWN' : 'UP';
+        }
         
-        <div id="hud" class="hidden">
-            <span id="level-display">NIVEL: 1</span>
-            <span id="score-display">INTENTOS: 1</span>
-        </div>
+        checkSwipe(direction);
+        isInteracting = false; // Requiere levantar o reiniciar para otro swipe
+    }
+}
 
-        <canvas id="gameCanvas"></canvas>
+// Eventos de Mouse
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    handleStart((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+});
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    handleMove((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+});
+window.addEventListener('mouseup', () => isInteracting = false);
 
-        <div id="main-menu" class="menu-overlay">
-            <div class="top-left-auth">
-                <input type="text" id="username" placeholder="Gamer ID">
-                <button onclick="login()">NUBE ☁️</button>
-                <span id="auth-status">Local Guardado</span>
-            </div>
+// Eventos Touch (Para iPad/iPhone)
+canvas.addEventListener('touchstart', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches[0];
+    handleStart((t.clientX - rect.left) * (canvas.width / rect.width), (t.clientY - rect.top) * (canvas.height / rect.height));
+});
+canvas.addEventListener('touchmove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches[0];
+    handleMove((t.clientX - rect.left) * (canvas.width / rect.width), (t.clientY - rect.top) * (canvas.height / rect.height));
+});
+window.addEventListener('touchend', () => isInteracting = false);
 
-            <div class="title-container">
-                <h1>SHADOW CAT</h1>
-                <p class="subtitle">Jujutsu Kaisen Ed.</p>
-            </div>
 
-            <div class="center-play-button" onclick="openLevels()">
-                <div class="play-triangle"></div>
-            </div>
+// --- LÓGICA DE RITMO Y MECÁNICAS ---
 
-            <div class="bottom-row">
-                <button class="btn-gd-circle btn-shop" onclick="openShop()" title="Skins">👕</button>
-                <button class="btn-gd-circle btn-builder" onclick="openBuilder()" title="Builder">🛠️</button>
-            </div>
-        </div>
+function spawnRhythmPoint() {
+    const randomDir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+    // Aparece al final de la barra
+    rhythmPoints.push({
+        x: rhythmBar.x + rhythmBar.width,
+        direction: randomDir,
+        hit: false
+    });
 
-        <div id="levels-menu" class="menu-overlay hidden secondary-bg">
-            <button class="btn-close-modal" onclick="closeLevels()">X</button>
-            <h2 class="modal-title">SELECCIONAR NIVEL</h2>
-            <div class="levels-grid">
-                <button class="level-box" onclick="startLevel(1)">1<span class="lvl-name">Inicio</span></button>
-                <button class="level-box" onclick="startLevel(2)">2<span class="lvl-name">Sombras</span></button>
-                <button class="level-box" onclick="startLevel(3)">3<span class="lvl-name">Maldición</span></button>
-                <button class="level-box" onclick="startLevel(4)">4<span class="lvl-name">Infinito</span></button>
-                <button class="level-box lvl-boss" onclick="startLevel(5)">5👹<span class="lvl-name">BOSS</span></button>
-            </div>
-        </div>
+    // Lanzar una bala que impactará al ritmo del punto
+    spawnBullet(randomDir);
+}
 
-        <div id="shop-menu" class="menu-overlay hidden secondary-bg">
-            <div class="gd-modal">
-                <button class="btn-close-modal" onclick="closeShop()">X</button>
-                <h2 class="modal-title">TIENDA JJK</h2>
-                <div class="skins-grid">
-                    <div class="skin-card" onclick="selectSkin('shadow')">
-                        <canvas id="skin-prev-shadow" class="skin-preview-canvas" width="50" height="50"></canvas>
-                        <p>Shadow</p>
-                    </div>
-                    <div class="skin-card" onclick="selectSkin('gojo')">
-                        <canvas id="skin-prev-gojo" class="skin-preview-canvas" width="50" height="50"></canvas>
-                        <p>Gojo</p>
-                    </div>
-                    <div class="skin-card" onclick="selectSkin('sukuna')">
-                        <canvas id="skin-prev-sukuna" class="skin-preview-canvas" width="50" height="50"></canvas>
-                        <p>Sukuna</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+function spawnBullet(direction) {
+    // La bala viaja desde fuera de la pantalla hacia la posición actual del gato
+    let startX = cat.x;
+    let startY = cat.y;
+    
+    // Determinar de dónde viene según la dirección que hay que usar para esquivar
+    if (direction === 'UP') startY = 0;
+    if (direction === 'DOWN') startY = 600;
+    if (direction === 'LEFT') startX = 0;
+    if (direction === 'RIGHT') startX = 800;
 
-        <div id="builder-menu" class="menu-overlay hidden secondary-bg">
-            <div class="builder-hud">
-                <button class="btn-back-editor" onclick="closeBuilder()">SALIR</button>
-                <span>MODO CONSTRUCTOR (GRID)</span>
-                <button class="btn-play-editor" onclick="playCustomLevel()">PROBAR ▶️</button>
-            </div>
-            <div class="builder-tools">
-                <button class="tool-btn active" id="tool-spike" onclick="setTool('spike')">▲<br>Pinchos</button>
-                <button class="tool-btn" id="tool-block" onclick="setTool('block')">■<br>Bloque</button>
-                <button class="tool-btn" onclick="clearCustomLevel()">🧹 Limpiar</button>
-            </div>
-            <div class="builder-instruction">Toca o haz clic en la pantalla central para colocar objetos</div>
-        </div>
+    bullets.push({
+        x: startX,
+        y: startY,
+        targetX: cat.x,
+        targetY: cat.y,
+        progress: 0,
+        speed: 1 / (rhythmBar.width / rhythmBar.speed) // Sincronizado con la barra
+    });
+}
 
-    </div>
+function checkSwipe(direction) {
+    // Buscar si hay un punto cerca de la línea blanca (Hitbox de ritmo)
+    let hitSuccess = false;
 
-    <script src="game.js"></script>
+    for (let pt of rhythmPoints) {
+        let distance = Math.abs(pt.x - rhythmBar.x); // La línea blanca está fija en el origen de la barra (rhythmBar.x)
+        
+        if (distance < 35 && pt.direction === direction && !pt.hit) {
+            pt.hit = true;
+            hitSuccess = true;
+            score += 10;
+            scoreEl.innerText = score;
+            
+            // Animación de esquiva del gato
+            const vec = DIR_VECTORS[direction];
+            cat.targetX = 400 + vec.x;
+            cat.targetY = 300 + vec.y;
+            
+            // Efecto Squish (Deformación fluida)
+            cat.squishX = direction === 'LEFT' || direction === 'RIGHT' ? 1.4 : 0.6;
+            cat.squishY = direction === 'UP' || direction === 'DOWN' ? 1.4 : 0.6;
+
+            createParticles(pt.x, rhythmBar.y + rhythmBar.height/2, '#00ffcc');
+            break;
+        }
+    }
+
+    if (!hitSuccess) {
+        // Penalización si fallas el swipe o el tempo
+        cat.color = '#ff3333';
+        setTimeout(() => cat.color = '#ff007f', 150);
+    }
+}
+
+function createParticles(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            radius: Math.random() * 4 + 2,
+            alpha: 1,
+            color: color
+        });
+    }
+}
+
+// --- BUCLE PRINCIPAL DE ANIMACIÓN (60 FPS / Fluidos) ---
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    let dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. Programador del Ritmo Musical
+    if (isPlaying && audioCtx.currentTime > nextBeatTime) {
+        if (nextBeatTime !== 0) {
+            playBeatSound(nextBeatTime, 120, 0.15); // Metrónomo de fondo
+            spawnRhythmPoint();
+        }
+        nextBeatTime = audioCtx.currentTime + beatInterval;
+    }
+
+    // 2. Actualizar y Dibujar Partículas
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= dt * 2;
+        if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+
+    // 3. Actualizar y Dibujar Gato (Interpolación fluida Lerp)
+    cat.x += (cat.targetX - cat.x) * 0.2; // Suavizado de movimiento
+    cat.y += (cat.targetY - cat.y) * 0.2;
+    
+    // El gato siempre tiende a regresar al centro poco a poco
+    cat.targetX += (400 - cat.targetX) * 0.05;
+    cat.targetY += (300 - cat.targetY) * 0.05;
+
+    // Recuperación de la deformación (Squish)
+    cat.squishX += (1 - cat.squishX) * 0.1;
+    cat.squishY += (1 - cat.squishY) * 0.1;
+
+    ctx.save();
+    ctx.translate(cat.x, cat.y);
+    ctx.scale(cat.squishX, cat.squishY);
+    
+    // Cuerpo del Gato (Estilo neón plano)
+    ctx.fillStyle = cat.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, cat.radius, 0, Math.PI * 2);
+    ctx.fill();
+    // Orejas
+    ctx.beginPath();
+    ctx.moveTo(-15, -15); ctx.lineTo(-25, -35); ctx.lineTo(-5, -22); ctx.fill();
+    ctx.moveTo(15, -15); ctx.lineTo(25, -35); ctx.lineTo(5, -22); ctx.fill();
+    ctx.restore();
+
+    // 4. Actualizar y Dibujar Balas
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.progress += b.speed * dt;
+
+        // Trayectoria lineal hacia donde estaba el gato
+        let currentX = b.x + (b.targetX - b.x) * b.progress;
+        let currentY = b.y + (b.targetY - b.y) * b.progress;
+
+        // Dibujar Bala
+        ctx.fillStyle = '#ffaa00';
+        ctx.shadowColor = '#ff5500';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset
+
+        // Colisión al llegar al final del progreso (Centro del timing)
+        if (b.progress >= 1.0) {
+            // Si el gato no se movió lo suficiente del centro, recibe daño visual
+            let dist = Math.hypot(cat.x - b.targetX, cat.y - b.targetY);
+            if (dist < 30) {
+                createParticles(cat.x, cat.y, '#ff0000');
+                score = Math.max(0, score - 5);
+                scoreEl.innerText = score;
+            }
+            bullets.splice(i, 1);
+        }
+    }
+
+    // 5. Dibujar Barra de Ritmo
+    ctx.fillStyle = '#2a2a40';
+    ctx.fillRect(rhythmBar.x, rhythmBar.y, rhythmBar.width, rhythmBar.height);
+
+    // Mover y dibujar los puntos de ritmo
+    for (let i = rhythmPoints.length - 1; i >= 0; i--) {
+        let pt = rhythmPoints[i];
+        pt.x -= rhythmBar.speed * dt;
+
+        if (pt.x < rhythmBar.x - 20) {
+            rhythmPoints.splice(i, 1); // Se salió de la barra
+            continue;
+        }
+
+        if (!pt.hit) {
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = 'bold 16px sans-serif';
+            
+            // Dibujar flecha indicadora según dirección requerida
+            let arrow = '↑';
+            if (pt.direction === 'DOWN') arrow = '↓';
+            if (pt.direction === 'LEFT') arrow = '←';
+            if (pt.direction === 'RIGHT') arrow = '→';
+
+            ctx.beginPath();
+            ctx.arc(pt.x, rhythmBar.y + rhythmBar.height / 2, 14, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#111';
+            ctx.fillText(arrow, pt.x - 6, rhythmBar.y + rhythmBar.height / 2 + 6);
+        }
+    }
+
+    // Línea Blanca Objetivo (Punto exacto de impacto)
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(rhythmBar.x, rhythmBar.y - 5);
+    ctx.lineTo(rhythmBar.x, rhythmBar.y + rhythmBar.height + 5);
+    ctx.stroke();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// --- CONTROLADOR DE INICIO ---
+startBtn.addEventListener('click', () => {
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    startBtn.style.display = 'none';
+    isPlaying = true;
+    nextBeatTime = audioCtx.currentTime + 0.5;
+    requestAnimationFrame(gameLoop);
+});
+</script>
+
 </body>
 </html>
