@@ -3,28 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Proyecto Juego</title>
+    <title>Multijugador Proyecto</title>
     
+    <script src="https://code.playcanvas.com/playcanvas-stable.min.js"></script>
+
     <style>
-        /* Esto ayuda a que el juego ocupe la pantalla limpiamente sin barras de scroll */
-        body {
+        html, body {
             margin: 0;
             padding: 0;
-            background-color: #222; /* Un fondo oscuro por defecto */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
+            background-color: #000000;
         }
+        /* Ajustamos el lienzo del juego para que llene la pantalla de tu dispositivo */
         canvas {
+            width: 100%;
+            height: 100%;
             display: block;
         }
     </style>
 </head>
 <body>
 
+    <canvas id="application-canvas"></canvas>
+
     <script src="sketch.js"></script>
 
 </body>
 </html>
+
