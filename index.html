@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Shadow Cat Dash</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -10,57 +10,80 @@
 
     <div id="game-container">
         
-        <div id="hud">
+        <div id="hud" class="hidden">
             <span id="level-display">NIVEL: 1</span>
             <span id="score-display">INTENTOS: 1</span>
         </div>
 
-        <canvas id="gameCanvas" width="800" height="450"></canvas>
+        <canvas id="gameCanvas"></canvas>
 
         <div id="main-menu" class="menu-overlay">
-            
             <div class="top-left-auth">
                 <input type="text" id="username" placeholder="Gamer ID">
-                <button onclick="login()">GUARDAR EN NUBE</button>
-                <span id="auth-status">Perfil Local Auto</span>
+                <button onclick="login()">NUBE ☁️</button>
+                <span id="auth-status">Local Guardado</span>
             </div>
 
             <div class="title-container">
-                <h1>SHADOW CAT DASH</h1>
-                <p class="subtitle">Jujutsu Kaisen Edition</p>
+                <h1>SHADOW CAT</h1>
+                <p class="subtitle">Jujutsu Kaisen Ed.</p>
             </div>
 
-            <div class="center-play-button" onclick="startGame()">
+            <div class="center-play-button" onclick="openLevels()">
                 <div class="play-triangle"></div>
             </div>
 
             <div class="bottom-row">
-                <button class="btn-gd-sub" onclick="openShop()" title="Skins JJK">👕</button>
-                <button class="btn-gd-sub btn-builder" onclick="alert('¡Próximamente: Constructor de niveles en camino!')" title="Builder">🛠️</button>
+                <button class="btn-gd-circle btn-shop" onclick="openShop()" title="Skins">👕</button>
+                <button class="btn-gd-circle btn-builder" onclick="openBuilder()" title="Builder">🛠️</button>
             </div>
-
         </div>
 
-        <div id="shop-menu" class="menu-overlay hidden" style="background: rgba(0,0,0,0.6); justify-content: center;">
+        <div id="levels-menu" class="menu-overlay hidden secondary-bg">
+            <button class="btn-close-modal" onclick="closeLevels()">X</button>
+            <h2 class="modal-title">SELECCIONAR NIVEL</h2>
+            <div class="levels-grid">
+                <button class="level-box" onclick="startLevel(1)">1<span class="lvl-name">Inicio</span></button>
+                <button class="level-box" onclick="startLevel(2)">2<span class="lvl-name">Sombras</span></button>
+                <button class="level-box" onclick="startLevel(3)">3<span class="lvl-name">Maldición</span></button>
+                <button class="level-box" onclick="startLevel(4)">4<span class="lvl-name">Infinito</span></button>
+                <button class="level-box lvl-boss" onclick="startLevel(5)">5👹<span class="lvl-name">BOSS</span></button>
+            </div>
+        </div>
+
+        <div id="shop-menu" class="menu-overlay hidden secondary-bg">
             <div class="gd-modal">
                 <button class="btn-close-modal" onclick="closeShop()">X</button>
-                <h2 class="modal-title">SELECCIONA TU SKIN JJK</h2>
-                
+                <h2 class="modal-title">TIENDA JJK</h2>
                 <div class="skins-grid">
                     <div class="skin-card" onclick="selectSkin('shadow')">
                         <canvas id="skin-prev-shadow" class="skin-preview-canvas" width="50" height="50"></canvas>
-                        <p>Shadow Cat</p>
+                        <p>Shadow</p>
                     </div>
                     <div class="skin-card" onclick="selectSkin('gojo')">
                         <canvas id="skin-prev-gojo" class="skin-preview-canvas" width="50" height="50"></canvas>
-                        <p>Gojo Satoru</p>
+                        <p>Gojo</p>
                     </div>
                     <div class="skin-card" onclick="selectSkin('sukuna')">
                         <canvas id="skin-prev-sukuna" class="skin-preview-canvas" width="50" height="50"></canvas>
-                        <p>Sukuna Cat</p>
+                        <p>Sukuna</p>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div id="builder-menu" class="menu-overlay hidden secondary-bg">
+            <div class="builder-hud">
+                <button class="btn-back-editor" onclick="closeBuilder()">SALIR</button>
+                <span>MODO CONSTRUCTOR (GRID)</span>
+                <button class="btn-play-editor" onclick="playCustomLevel()">PROBAR ▶️</button>
+            </div>
+            <div class="builder-tools">
+                <button class="tool-btn active" id="tool-spike" onclick="setTool('spike')">▲<br>Pinchos</button>
+                <button class="tool-btn" id="tool-block" onclick="setTool('block')">■<br>Bloque</button>
+                <button class="tool-btn" onclick="clearCustomLevel()">🧹 Limpiar</button>
+            </div>
+            <div class="builder-instruction">Toca o haz clic en la pantalla central para colocar objetos</div>
         </div>
 
     </div>
