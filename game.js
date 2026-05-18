@@ -8,14 +8,15 @@ let currentLevel = 1;
 let attempts = 1;
 let currentUser = null;
 
+// Físicas del jugador ajustadas
 const player = {
-    x: 120,
-    y: 350,
-    width: 42,
-    height: 42,
-    gravity: 1.5,
+    x: 100,
+    y: 300,
+    width: 40,
+    height: 40,
+    gravity: 1.4,
     velocity: 0,
-    jumpForce: -16.5,
+    jumpForce: -16,
     isGrounded: false
 };
 
@@ -23,7 +24,16 @@ let obstacles = [];
 let gameSpeed = 6.5;
 let frameCount = 0;
 
-// Cargar Datos Guardados de Forma Local
+// Reajustar tamaño del lienzo internamente para que coincida con el CSS real del móvil
+function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = 800;  // Mantiene la resolución interna fija para que las físicas no cambien
+    canvas.height = 450;
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+
+// Cargar Datos Guardados
 function loadGameData() {
     const savedData = localStorage.getItem("shadowCat_save");
     if (savedData) {
@@ -37,12 +47,7 @@ function loadGameData() {
 }
 
 function saveGameData() {
-    const dataToSave = {
-        level: currentLevel,
-        attempts: attempts,
-        skin: currentSkin,
-        user: currentUser
-    };
+    const dataToSave = { level: currentLevel, attempts: attempts, skin: currentSkin, user: currentUser };
     localStorage.setItem("shadowCat_save", JSON.stringify(dataToSave));
 }
 
@@ -55,49 +60,38 @@ function login() {
     }
 }
 
-// --- DIBUJO VECTORIAL DEL GATO Y SKINS ---
+// --- DIBUJO DEL GATO Y TRAJES JJK ---
 function drawShadowCat(targetCtx, x, y, size, skin) {
     targetCtx.save();
-    
-    // Aura/Sombra base
     targetCtx.fillStyle = "#121218";
     targetCtx.shadowBlur = 12;
     targetCtx.shadowColor = skin === "gojo" ? "#00d2ff" : (skin === "sukuna" ? "#ff3333" : "#bd7eff");
     targetCtx.fillRect(x, y, size, size);
-    targetCtx.shadowBlur = 0; // Resetear sombra para detalles
+    targetCtx.shadowBlur = 0;
 
-    // Orejas de gato
+    // Orejas
     targetCtx.fillStyle = "#121218";
     targetCtx.beginPath();
-    targetCtx.moveTo(x, y);
-    targetCtx.lineTo(x + size*0.25, y - size*0.2);
-    targetCtx.lineTo(x + size*0.4, y);
-    targetCtx.moveTo(x + size, y);
-    targetCtx.lineTo(x + size*0.75, y - size*0.2);
-    targetCtx.lineTo(x + size*0.6, y);
+    targetCtx.moveTo(x, y); targetCtx.lineTo(x + size*0.25, y - size*0.2); targetCtx.lineTo(x + size*0.4, y);
+    targetCtx.moveTo(x + size, y); targetCtx.lineTo(x + size*0.75, y - size*0.2); targetCtx.lineTo(x + size*0.6, y);
     targetCtx.fill();
 
-    // Detalles según Skin de JJK
     if (skin === "shadow") {
         targetCtx.fillStyle = "#bd7eff";
         targetCtx.fillRect(x + size*0.65, y + size*0.25, 6, 10);
         targetCtx.fillRect(x + size*0.3, y + size*0.25, 6, 10);
     } 
     else if (skin === "gojo") {
-        // Venda de ojos negra icónica de Gojo
         targetCtx.fillStyle = "#050508";
         targetCtx.fillRect(x, y + size*0.2, size, size*0.3);
-        // Destello Azul de los Seis Ojos (Infinito) asomándose abajo
         targetCtx.fillStyle = "#00ffff";
         targetCtx.fillRect(x + size*0.6, y + size*0.5, 8, 4);
     } 
     else if (skin === "sukuna") {
-        // Tatuajes faciales rojos de Sukuna
         targetCtx.fillStyle = "#ff2222";
         targetCtx.fillRect(x + size*0.1, y + size*0.2, 6, 4);
         targetCtx.fillRect(x + size*0.75, y + size*0.2, 6, 4);
-        targetCtx.fillRect(x + size*0.4, y + size*0.1, 8, 3); // Frente
-        // Ojos malditos adicionales
+        targetCtx.fillRect(x + size*0.4, y + size*0.1, 8, 3);
         targetCtx.fillStyle = "#ffffff";
         targetCtx.fillRect(x + size*0.25, y + size*0.35, 5, 5);
         targetCtx.fillRect(x + size*0.6, y + size*0.35, 5, 5);
@@ -105,15 +99,13 @@ function drawShadowCat(targetCtx, x, y, size, skin) {
     targetCtx.restore();
 }
 
-// Dibujar Vistas previas en la Tienda
 function renderMenuSkinPreviews() {
-    const skins = ["shadow", "gojo", "sukuna"];
-    skins.forEach(s => {
+    ["shadow", "gojo", "sukuna"].forEach(s => {
         const pCanvas = document.getElementById(`skin-prev-${s}`);
         if(pCanvas) {
             const pCtx = pCanvas.getContext("2d");
             pCtx.clearRect(0, 0, 50, 50);
-            drawShadowCat(pCtx, 5, 10, 38, s);
+            drawShadowCat(pCtx, 5, 5, 38, s);
         }
     });
 }
@@ -125,8 +117,6 @@ function drawSpike(targetCtx, x, y, width, height) {
     grad.addColorStop(1, "#20000b");
     targetCtx.fillStyle = grad;
     targetCtx.strokeStyle = "#fff";
-    targetCtx.lineWidth = 1;
-
     targetCtx.beginPath();
     targetCtx.moveTo(x, y + height);
     targetCtx.lineTo(x + width / 2, y);
@@ -144,16 +134,10 @@ function drawFallingBlock(targetCtx, x, y, size) {
     targetCtx.lineWidth = 3;
     targetCtx.fillRect(x, y, size, size);
     targetCtx.strokeRect(x, y, size, size);
-    
-    targetCtx.beginPath();
-    targetCtx.moveTo(x, y); targetCtx.lineTo(x + size, y + size);
-    targetCtx.moveTo(x + size, y); targetCtx.lineTo(x, y + size);
-    targetCtx.strokeStyle = "rgba(255, 0, 170, 0.3)";
-    targetCtx.stroke();
     targetCtx.restore();
 }
 
-// --- SISTEMA DEL BUCLE JUEGO ---
+// --- BUCLE Y SISTEMAS ---
 function startGame() {
     document.getElementById("main-menu").classList.add("hidden");
     gameState = "PLAYING";
@@ -175,49 +159,38 @@ function updateHUD() {
     document.getElementById("score-display").innerText = `INTENTOS: ${attempts}`;
 }
 
-// Control Unión de Acción (Salto)
-function handleJump() {
+function handleJump(e) {
+    if(e) e.preventDefault(); // Evita el doble zoom raro en pantallas táctiles
     if (player.isGrounded && gameState === "PLAYING") {
         player.velocity = player.jumpForce;
         player.isGrounded = false;
     }
 }
 window.addEventListener("keydown", (e) => { if(e.code === "Space" || e.code === "ArrowUp") handleJump(); });
-window.addEventListener("touchstart", handleJump);
+canvas.addEventListener("touchstart", handleJump, {passive: false});
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Suelo estilo Geometry Dash Neon
+    // Suelo
     ctx.strokeStyle = "#2c164d";
     ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(0, 392);
-    ctx.lineTo(800, 392);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 392); ctx.lineTo(800, 392); ctx.stroke();
 
     if (gameState === "PLAYING") {
         player.velocity += player.gravity;
         player.y += player.velocity;
 
-        // Tope de Suelo
-        if (player.y >= 350) {
-            player.y = 350;
+        if (player.y >= 352) {
+            player.y = 352;
             player.velocity = 0;
             player.isGrounded = true;
         }
 
         frameCount++;
-        // Obstáculos terrestres
-        if (frameCount % 100 === 0) {
-            obstacles.push({ x: 820, y: 352, width: 32, height: 40, type: "spike" });
-        }
-        // Obstáculos cayendo del cielo
-        if (frameCount % 160 === 0) {
-            obstacles.push({ x: player.x + 350, y: -40, width: 35, height: 35, type: "falling", speedY: 5.5 });
-        }
+        if (frameCount % 90 === 0) obstacles.push({ x: 820, y: 352, width: 32, height: 40, type: "spike" });
+        if (frameCount % 150 === 0) obstacles.push({ x: player.x + 380, y: -40, width: 35, height: 35, type: "falling", speedY: 6 });
 
-        // Render y movimiento de obstáculos
         for (let i = obstacles.length - 1; i >= 0; i--) {
             let obs = obstacles[i];
             obs.x -= gameSpeed;
@@ -226,40 +199,24 @@ function gameLoop() {
             if (obs.type === "spike") drawSpike(ctx, obs.x, obs.y, obs.width, obs.height);
             else drawFallingBlock(ctx, obs.x, obs.y, obs.width);
 
-            // Colisiones AABB
-            if (
-                player.x < obs.x + obs.width &&
-                player.x + player.width > obs.x &&
-                player.y < obs.y + obs.height &&
-                player.y + player.height > obs.y
-            ) {
+            if (player.x < obs.x + obs.width && player.x + player.width > obs.x && player.y < obs.y + obs.height && player.y + player.height > obs.y) {
                 attempts++;
                 resetLevel();
             }
-
             if (obs.x < -60) obstacles.splice(i, 1);
         }
     }
 
-    // Render del Gato de las Sombras permanente en pantalla
     drawShadowCat(ctx, player.x, player.y, player.width, currentSkin);
-
     requestAnimationFrame(gameLoop);
 }
 
-// --- MENÚS DE CONTROL ---
-function openShop() {
-    document.getElementById("shop-menu").classList.remove("hidden");
-}
-function closeShop() {
-    document.getElementById("shop-menu").classList.add("hidden");
-}
-function selectSkin(skinName) {
-    currentSkin = skinName;
-    saveGameData();
-    closeShop();
-}
+// Interfaz
+function openShop() { document.getElementById("shop-menu").classList.remove("hidden"); }
+function closeShop() { document.getElementById("shop-menu").classList.add("hidden"); }
+function selectSkin(skinName) { currentSkin = skinName; saveGameData(); closeShop(); }
 
-// Encendido del Motor
+// Inicialización
+resizeCanvas();
 loadGameData();
 requestAnimationFrame(gameLoop);
