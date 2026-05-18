@@ -1,8 +1,13 @@
-body {
+/* Restablecer estilos base */
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    background-color: #0d0d13;
-    font-family: 'Courier New', Courier, monospace;
+}
+
+body {
+    background-color: #0a0a10;
+    font-family: 'Arial Black', 'Impact', sans-serif;
     color: #fff;
     display: flex;
     justify-content: center;
@@ -11,119 +16,256 @@ body {
     overflow: hidden;
 }
 
+/* Contenedor del Juego (Simula la pantalla del celular/PC) */
 #game-container {
     position: relative;
-    border: 4px solid #3a1c5c;
-    box-shadow: 0 0 20px #511f87;
+    width: 800px;
+    height: 450px;
+    background: #10101c;
+    border: 4px solid #22123b;
+    box-shadow: 0 0 30px rgba(138, 43, 226, 0.4);
+    overflow: hidden;
 }
 
 canvas {
-    background: #14141f;
     display: block;
+    width: 100%;
+    height: 100%;
 }
 
+/* Capas de Menús estilo GD */
 .menu-overlay {
     position: absolute;
-    width: 800px;
-    height: 400px;
-    background: rgba(13, 13, 19, 0.95);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1d0a2b 0%, #090514 100%);
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
+    padding: 25px;
     z-index: 10;
-    border: 4px solid #3a1c5c;
-    box-sizing: border-box;
 }
 
 .hidden {
     display: none !important;
 }
 
+/* Título superior animado */
+.title-container {
+    text-align: center;
+    margin-top: 10px;
+}
+
 h1 {
-    font-size: 45px;
-    margin: 0;
-    color: #a146ff;
-    text-shadow: 0 0 10px #a146ff;
+    font-size: 50px;
+    color: #00ffff;
+    text-shadow: -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 0 15px #00ffff;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .subtitle {
-    color: #ff467e;
-    margin-top: 0;
-    letter-spacing: 3px;
+    font-size: 16px;
+    color: #ff007f;
+    text-shadow: 2px 2px 0px #000;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: -5px;
 }
 
-.menu-buttons {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.btn-main, .btn-back {
-    background: #25143b;
-    border: 2px solid #a146ff;
-    color: white;
-    padding: 12px 30px;
-    font-size: 18px;
+/* El botón gigante central de JUGAR (Estilo GD) */
+.center-play-button {
+    width: 110px;
+    height: 110px;
+    background: radial-gradient(circle, #26d07c 0%, #1b8a51 100%);
+    border: 5px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 8px 0 #0f5230, 0 0 20px rgba(38, 208, 124, 0.6);
     cursor: pointer;
-    font-weight: bold;
-    transition: 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.1s, filter 0.2s;
 }
 
-.btn-main:hover {
-    background: #a146ff;
-    box-shadow: 0 0 15px #a146ff;
+.center-play-button:hover {
+    transform: scale(1.08);
+    filter: brightness(1.1);
 }
 
-.auth-section {
-    margin-bottom: 15px;
-    font-size: 12px;
+/* Triángulo del botón Play */
+.play-triangle {
+    width: 0;
+    height: 0;
+    border-top: 22px solid transparent;
+    border-bottom: 22px solid transparent;
+    border-left: 38px solid white;
+    margin-left: 8px;
 }
 
-.auth-section input {
-    background: #1a1a26;
-    border: 1px solid #3a1c5c;
+/* Fila de botones inferiores (Iconos redondos secundarios) */
+.bottom-row {
+    display: flex;
+    gap: 25px;
+    margin-bottom: 10px;
+}
+
+.btn-gd-sub {
+    width: 65px;
+    height: 65px;
+    background: radial-gradient(circle, #ff9000 0%, #c65300 100%);
+    border: 4px solid #fff;
+    border-radius: 15px;
+    box-shadow: 0 5px 0 #7c3400, 0 0 10px rgba(255, 144, 0, 0.5);
     color: white;
-    padding: 5px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.1s;
+}
+
+.btn-gd-sub:hover {
+    transform: scale(1.1);
+}
+
+/* Botón Builder (Martillo/Llaves) con color azul/morado */
+.btn-builder {
+    background: radial-gradient(circle, #a146ff 0%, #511f87 100%);
+    box-shadow: 0 5px 0 #311054, 0 0 10px rgba(161, 70, 255, 0.5);
+}
+
+/* Sección de Login en la esquina superior */
+.top-left-auth {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+.top-left-auth input {
+    background: #222;
+    border: 2px solid #555;
+    color: #fff;
+    padding: 4px;
+    font-size: 11px;
+    border-radius: 4px;
+    width: 110px;
+}
+
+.top-left-auth button {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 3px;
+    font-size: 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+#auth-status {
+    font-size: 9px;
+    color: #aaa;
+}
+
+/* MODAL / SUBMENÚ DE LA TIENDA DE SKINS */
+.gd-modal {
+    position: absolute;
+    width: 500px;
+    height: 300px;
+    background: #181826;
+    border: 5px solid #bf6100;
+    border-radius: 20px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    z-index: 20;
+}
+
+.modal-title {
+    font-size: 24px;
+    color: #ff9000;
+    text-shadow: 2px 2px 0 #000;
+    margin-bottom: 20px;
 }
 
 .skins-grid {
     display: flex;
-    gap: 30px;
-    margin: 20px 0;
+    gap: 20px;
+    justify-content: center;
+    width: 100%;
 }
 
 .skin-card {
-    background: #1a1a26;
-    border: 2px solid #3a1c5c;
-    padding: 15px;
+    background: #0c0c14;
+    border: 3px solid #444;
+    border-radius: 12px;
+    padding: 10px;
+    width: 120px;
     text-align: center;
     cursor: pointer;
-    border-radius: 8px;
+    transition: 0.1s;
 }
 
 .skin-card:hover {
-    border-color: #ff467e;
-    box-shadow: 0 0 10px rgba(255, 70, 126, 0.5);
+    border-color: #00ffff;
+    transform: scale(1.05);
 }
 
-.skin-preview {
+.skin-card p {
+    font-size: 11px;
+    margin-top: 8px;
+    color: #ccc;
+}
+
+.skin-preview-canvas {
     width: 50px;
     height: 50px;
-    margin: 0 auto 10px auto;
-    background: #000;
+    background: #14141f;
+    margin: 0 auto;
+    display: block;
+    border-radius: 6px;
 }
 
+.btn-close-modal {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 40px;
+    height: 40px;
+    background: #ff2a2a;
+    color: white;
+    border: 3px solid white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #801010;
+}
+
+/* Marcador HUD del juego activo */
 #hud {
     position: absolute;
-    top: 10px;
-    left: 15px;
-    right: 15px;
+    top: 12px;
+    left: 20px;
+    right: 20px;
     display: flex;
     justify-content: space-between;
-    font-size: 18px;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px black;
+    font-size: 20px;
+    text-shadow: 2px 2px 0px #000;
     pointer-events: none;
     z-index: 5;
 }
