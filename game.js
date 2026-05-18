@@ -1,31 +1,29 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// --- ESTADO DEL JUEGO Y PROGRESO ---
+// --- CONFIGURACIÓN BASE ---
 let gameState = "MENU"; 
 let currentSkin = "shadow";
 let currentLevel = 1;
 let attempts = 1;
 let currentUser = null;
 
-// Configuración del Jugador (Gato de las sombras)
 const player = {
-    x: 100,
-    y: 300,
-    width: 40,
-    height: 40,
-    gravity: 1.4,
+    x: 120,
+    y: 350,
+    width: 42,
+    height: 42,
+    gravity: 1.5,
     velocity: 0,
-    jumpForce: -16,
+    jumpForce: -16.5,
     isGrounded: false
 };
 
-// Listas de juego
 let obstacles = [];
-let gameSpeed = 6;
+let gameSpeed = 6.5;
 let frameCount = 0;
 
-// Cargar datos guardados automáticamente al abrir el juego
+// Cargar Datos Guardados de Forma Local
 function loadGameData() {
     const savedData = localStorage.getItem("shadowCat_save");
     if (savedData) {
@@ -33,8 +31,9 @@ function loadGameData() {
         currentLevel = data.level || 1;
         attempts = data.attempts || 1;
         currentSkin = data.skin || "shadow";
-        updateHUD();
     }
+    updateHUD();
+    renderMenuSkinPreviews();
 }
 
 function saveGameData() {
@@ -47,114 +46,114 @@ function saveGameData() {
     localStorage.setItem("shadowCat_save", JSON.stringify(dataToSave));
 }
 
-// Sistema de cuentas ficticio/nube simulada
 function login() {
     const userField = document.getElementById("username").value;
     if(userField.trim() !== "") {
         currentUser = userField;
-        document.getElementById("auth-status").innerText = `Conectado como: ${currentUser} (Sincronizado)`;
+        document.getElementById("auth-status").innerText = `Nube: ${currentUser}`;
         saveGameData();
     }
 }
 
-// --- GENERACIÓN DE TEXTURAS POR CÓDIGO (PROTOTIPOS VECTORIALES) ---
-function drawShadowCat(ctx, x, y, size, skin) {
-    ctx.save();
+// --- DIBUJO VECTORIAL DEL GATO Y SKINS ---
+function drawShadowCat(targetCtx, x, y, size, skin) {
+    targetCtx.save();
     
-    // Cuerpo base: Humo/Sombra oscura
-    ctx.fillStyle = "#111116";
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = skin === "gojo" ? "#4682ff" : (skin === "sukuna" ? "#ff4646" : "#a146ff");
-    ctx.fillRect(x, y, size, size);
+    // Aura/Sombra base
+    targetCtx.fillStyle = "#121218";
+    targetCtx.shadowBlur = 12;
+    targetCtx.shadowColor = skin === "gojo" ? "#00d2ff" : (skin === "sukuna" ? "#ff3333" : "#bd7eff");
+    targetCtx.fillRect(x, y, size, size);
+    targetCtx.shadowBlur = 0; // Resetear sombra para detalles
 
-    // Ojos base del gato (Brillantes de sombra)
-    ctx.fillStyle = "#fff";
-    ctx.shadowBlur = 0;
-    
+    // Orejas de gato
+    targetCtx.fillStyle = "#121218";
+    targetCtx.beginPath();
+    targetCtx.moveTo(x, y);
+    targetCtx.lineTo(x + size*0.25, y - size*0.2);
+    targetCtx.lineTo(x + size*0.4, y);
+    targetCtx.moveTo(x + size, y);
+    targetCtx.lineTo(x + size*0.75, y - size*0.2);
+    targetCtx.lineTo(x + size*0.6, y);
+    targetCtx.fill();
+
+    // Detalles según Skin de JJK
     if (skin === "shadow") {
-        ctx.fillStyle = "#bd7eff";
-        ctx.fillRect(x + 25, y + 10, 6, 10);
-        ctx.fillRect(x + 12, y + 10, 6, 10);
+        targetCtx.fillStyle = "#bd7eff";
+        targetCtx.fillRect(x + size*0.65, y + size*0.25, 6, 10);
+        targetCtx.fillRect(x + size*0.3, y + size*0.25, 6, 10);
     } 
     else if (skin === "gojo") {
-        // Venda en los ojos negra y destellos celestes abajo
-        ctx.fillStyle = "#000";
-        ctx.fillRect(x, y + 8, size, 12);
-        ctx.fillStyle = "#46ccff"; // Brillo del infinito
-        ctx.fillRect(x + 24, y + 18, 8, 4);
+        // Venda de ojos negra icónica de Gojo
+        targetCtx.fillStyle = "#050508";
+        targetCtx.fillRect(x, y + size*0.2, size, size*0.3);
+        // Destello Azul de los Seis Ojos (Infinito) asomándose abajo
+        targetCtx.fillStyle = "#00ffff";
+        targetCtx.fillRect(x + size*0.6, y + size*0.5, 8, 4);
     } 
     else if (skin === "sukuna") {
-        // Marcas en la cara (Líneas rojas) y 4 ojos pequeños
-        ctx.fillStyle = "#ff2a2a";
-        ctx.fillRect(x + 5, y + 5, 4, 4);
-        ctx.fillRect(x + 12, y + 9, 4, 4);
-        ctx.fillRect(x + 22, y + 9, 4, 4);
-        ctx.fillRect(x + 30, y + 5, 4, 4);
-        // Tatuaje de frente
-        ctx.fillRect(x + 16, y + 2, 8, 3);
+        // Tatuajes faciales rojos de Sukuna
+        targetCtx.fillStyle = "#ff2222";
+        targetCtx.fillRect(x + size*0.1, y + size*0.2, 6, 4);
+        targetCtx.fillRect(x + size*0.75, y + size*0.2, 6, 4);
+        targetCtx.fillRect(x + size*0.4, y + size*0.1, 8, 3); // Frente
+        // Ojos malditos adicionales
+        targetCtx.fillStyle = "#ffffff";
+        targetCtx.fillRect(x + size*0.25, y + size*0.35, 5, 5);
+        targetCtx.fillRect(x + size*0.6, y + size*0.35, 5, 5);
     }
-
-    // Orejas de gato fijas
-    ctx.fillStyle = "#111116";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 10, y - 10);
-    ctx.lineTo(x + 15, y);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(x + size, y);
-    ctx.lineTo(x + size - 10, y - 10);
-    ctx.lineTo(x + size - 15, y);
-    ctx.fill();
-
-    ctx.restore();
+    targetCtx.restore();
 }
 
-// Textura de pinchos/obstáculos mecánicos por código
-function drawSpike(ctx, x, y, width, height) {
-    ctx.save();
-    let gradient = ctx.createLinearGradient(x, y, x, y + height);
-    gradient.addColorStop(0, "#ff467e");
-    gradient.addColorStop(1, "#3a1220");
-    ctx.fillStyle = gradient;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = "#ff467e";
-
-    ctx.beginPath();
-    ctx.moveTo(x, y + height);
-    ctx.lineTo(x + width / 2, y);
-    ctx.lineTo(x + width, y + height);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+// Dibujar Vistas previas en la Tienda
+function renderMenuSkinPreviews() {
+    const skins = ["shadow", "gojo", "sukuna"];
+    skins.forEach(s => {
+        const pCanvas = document.getElementById(`skin-prev-${s}`);
+        if(pCanvas) {
+            const pCtx = pCanvas.getContext("2d");
+            pCtx.clearRect(0, 0, 50, 50);
+            drawShadowCat(pCtx, 5, 10, 38, s);
+        }
+    });
 }
 
-// Textura de Bloques que caen (Obstáculos Dinámicos)
-function drawFallingBlock(ctx, x, y, size) {
-    ctx.save();
-    ctx.fillStyle = "#2a1a40";
-    ctx.strokeStyle = "#00ffff";
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "#00ffff";
+function drawSpike(targetCtx, x, y, width, height) {
+    targetCtx.save();
+    let grad = targetCtx.createLinearGradient(x, y, x, y + height);
+    grad.addColorStop(0, "#ff0055");
+    grad.addColorStop(1, "#20000b");
+    targetCtx.fillStyle = grad;
+    targetCtx.strokeStyle = "#fff";
+    targetCtx.lineWidth = 1;
+
+    targetCtx.beginPath();
+    targetCtx.moveTo(x, y + height);
+    targetCtx.lineTo(x + width / 2, y);
+    targetCtx.lineTo(x + width, y + height);
+    targetCtx.closePath();
+    targetCtx.fill();
+    targetCtx.stroke();
+    targetCtx.restore();
+}
+
+function drawFallingBlock(targetCtx, x, y, size) {
+    targetCtx.save();
+    targetCtx.fillStyle = "#1e1e2f";
+    targetCtx.strokeStyle = "#ff00aa";
+    targetCtx.lineWidth = 3;
+    targetCtx.fillRect(x, y, size, size);
+    targetCtx.strokeRect(x, y, size, size);
     
-    ctx.fillRect(x, y, size, size);
-    ctx.strokeRect(x, y, size, size);
-    
-    // Cruz interna decorativa de advertencia
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + size, y + size);
-    ctx.moveTo(x + size, y);
-    ctx.lineTo(x, y + size);
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.4)";
-    ctx.stroke();
-    ctx.restore();
+    targetCtx.beginPath();
+    targetCtx.moveTo(x, y); targetCtx.lineTo(x + size, y + size);
+    targetCtx.moveTo(x + size, y); targetCtx.lineTo(x, y + size);
+    targetCtx.strokeStyle = "rgba(255, 0, 170, 0.3)";
+    targetCtx.stroke();
+    targetCtx.restore();
 }
 
-// --- MECÁNICAS Y LOOP DEL JUEGO ---
-
+// --- SISTEMA DEL BUCLE JUEGO ---
 function startGame() {
     document.getElementById("main-menu").classList.add("hidden");
     gameState = "PLAYING";
@@ -162,7 +161,7 @@ function startGame() {
 }
 
 function resetLevel() {
-    player.y = 300;
+    player.y = 350;
     player.velocity = 0;
     player.isGrounded = false;
     obstacles = [];
@@ -172,139 +171,95 @@ function resetLevel() {
 }
 
 function updateHUD() {
-    document.getElementById("level-display").innerText = `Nivel: ${currentLevel}`;
-    document.getElementById("score-display").innerText = `Intentos: ${attempts}`;
+    document.getElementById("level-display").innerText = `NIVEL: ${currentLevel}`;
+    document.getElementById("score-display").innerText = `INTENTOS: ${attempts}`;
 }
 
-// Entrada de Controles (Salto tipo GD)
-window.addEventListener("keydown", (e) => {
-    if ((e.code === "Space" || e.code === "ArrowUp") && player.isGrounded && gameState === "PLAYING") {
-        player.velocity = player.jumpForce;
-        player.isGrounded = false;
-    }
-});
-window.addEventListener("touchstart", () => {
+// Control Unión de Acción (Salto)
+function handleJump() {
     if (player.isGrounded && gameState === "PLAYING") {
         player.velocity = player.jumpForce;
         player.isGrounded = false;
     }
-});
-
-function spawnObstacles() {
-    frameCount++;
-    
-    // Generar obstáculos en el suelo de forma regular
-    if (frameCount % 90 === 0) {
-        obstacles.push({
-            x: 850,
-            y: 310,
-            width: 30,
-            height: 40,
-            type: "spike"
-        });
-    }
-
-    // OBSTÁCULOS CAYENDO (Dinámicos tipo Boss/Ritmo) cada cierto tiempo
-    if (frameCount % 140 === 0) {
-        obstacles.push({
-            x: player.x + 400, // Cae un poco más adelante del jugador
-            y: -50,
-            width: 35,
-            height: 35,
-            type: "falling",
-            fallSpeed: 5
-        });
-    }
 }
+window.addEventListener("keydown", (e) => { if(e.code === "Space" || e.code === "ArrowUp") handleJump(); });
+window.addEventListener("touchstart", handleJump);
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar Suelo Línea de Meta / Decoración Neon por código
-    ctx.strokeStyle = "#3a1c5c";
-    ctx.lineWidth = 4;
+    // Suelo estilo Geometry Dash Neon
+    ctx.strokeStyle = "#2c164d";
+    ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.moveTo(0, 350);
-    ctx.lineTo(800, 350);
+    ctx.moveTo(0, 392);
+    ctx.lineTo(800, 392);
     ctx.stroke();
 
     if (gameState === "PLAYING") {
-        // Aplicar gravedad al Gato
         player.velocity += player.gravity;
         player.y += player.velocity;
 
-        // Colisión con el suelo fijo
-        if (player.y >= 310) {
-            player.y = 310;
+        // Tope de Suelo
+        if (player.y >= 350) {
+            player.y = 350;
             player.velocity = 0;
             player.isGrounded = true;
         }
 
-        spawnObstacles();
+        frameCount++;
+        // Obstáculos terrestres
+        if (frameCount % 100 === 0) {
+            obstacles.push({ x: 820, y: 352, width: 32, height: 40, type: "spike" });
+        }
+        // Obstáculos cayendo del cielo
+        if (frameCount % 160 === 0) {
+            obstacles.push({ x: player.x + 350, y: -40, width: 35, height: 35, type: "falling", speedY: 5.5 });
+        }
 
-        // Procesar todos los obstáculos
+        // Render y movimiento de obstáculos
         for (let i = obstacles.length - 1; i >= 0; i--) {
             let obs = obstacles[i];
-            
-            // Movimiento horizontal general (Velocidad GD)
             obs.x -= gameSpeed;
+            if (obs.type === "falling") obs.y += obs.speedY;
 
-            // Si es tipo dinámico, además cae del cielo
-            if (obs.type === "falling") {
-                obs.y += obs.fallSpeed;
-            }
+            if (obs.type === "spike") drawSpike(ctx, obs.x, obs.y, obs.width, obs.height);
+            else drawFallingBlock(ctx, obs.x, obs.y, obs.width);
 
-            // Renderizar las texturas algorítmicas correspondientes
-            if (obs.type === "spike") {
-                drawSpike(ctx, obs.x, obs.y, obs.width, obs.height);
-            } else {
-                drawFallingBlock(ctx, obs.x, obs.y, obs.width);
-            }
-
-            // Detección de Colisión AABB simple
+            // Colisiones AABB
             if (
                 player.x < obs.x + obs.width &&
                 player.x + player.width > obs.x &&
                 player.y < obs.y + obs.height &&
                 player.y + player.height > obs.y
             ) {
-                // ¡PUM! El jugador muere
                 attempts++;
                 resetLevel();
             }
 
-            // Eliminar objetos fuera de pantalla
-            if (obs.x < -50) {
-                obstacles.splice(i, 1);
-            }
+            if (obs.x < -60) obstacles.splice(i, 1);
         }
     }
 
-    // Dibujar siempre al Gato de las Sombras con su Skin activa hecha por código
+    // Render del Gato de las Sombras permanente en pantalla
     drawShadowCat(ctx, player.x, player.y, player.width, currentSkin);
 
     requestAnimationFrame(gameLoop);
 }
 
-// --- INTERFAZ DE LA TIENDA ---
+// --- MENÚS DE CONTROL ---
 function openShop() {
-    document.getElementById("main-menu").classList.add("hidden");
     document.getElementById("shop-menu").classList.remove("hidden");
 }
-
 function closeShop() {
     document.getElementById("shop-menu").classList.add("hidden");
-    document.getElementById("main-menu").classList.remove("remove");
-    // Hack rápido para recargar estados de menú sin recargar ventana
-    document.getElementById("main-menu").className = "menu-overlay";
 }
-
 function selectSkin(skinName) {
     currentSkin = skinName;
     saveGameData();
     closeShop();
 }
 
-// Inicializar el cargador y el Loop
+// Encendido del Motor
 loadGameData();
 requestAnimationFrame(gameLoop);
