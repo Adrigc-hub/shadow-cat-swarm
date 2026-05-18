@@ -4,34 +4,124 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 600;
 
-// --- PERSISTENCIA Y CONTENIDOS ---
+// --- PERSISTENCIA DE NIVELES ---
 let localLevels = JSON.parse(localStorage.getItem('cat_dash_local_levels')) || [];
 
-// Canción principal solicitada: Sweet Dreams - Weezer (Link de respaldo de audio)
-const weezerTrack = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; 
+// --- MOTOR DE AUDIO NATIVO (Sintetizador para evitar bloqueos en iOS/iPad) ---
+const AudioEngine = {
+    ctx: null,
+    isPlaying: false,
+    startTime: 0,
+    elapsedTime: 0,
+    sequence: [],
+    nextNoteIndex: 0,
 
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    },
+
+    // Generador de la icónica línea de sintetizador/guitarra de Sweet Dreams
+    playTone(freq, type, duration, time) {
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, time);
+        
+        gain.gain.setValueAtTime(0.15, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(time);
+        osc.stop(time + duration);
+    },
+
+    // Generador del golpe de batería (Kick) para marcar el ritmo
+    playDrum(time) {
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(120, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.15);
+        
+        gain.gain.setValueAtTime(0.3, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.15);
+    },
+
+    setupWeezerTrack() {
+        this.sequence = [];
+        // Notas aproximadas de la intro de Sweet Dreams (Cm - Ab - G)
+        let melody = [130, 130, 155, 130, 146, 146, 130, 116, 116, 116, 98, 98];
+        let time = 0.2;
+        
+        // Generamos un loop rítmico automatizado de 30 segundos
+        for (let loop = 0; loop < 15; loop++) {
+            melody.forEach((note, idx) => {
+                this.sequence.push({ time: time, freq: note, type: 'triangle', isDrum: idx % 2 === 0 });
+                time += 0.25; // Compás continuo
+            });
+        }
+        // Guardamos la duración total calculada
+        this.duration = time;
+    },
+
+    play() {
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.isPlaying = true;
+        this.startTime = this.ctx.currentTime - this.elapsedTime;
+        this.nextNoteIndex = 0;
+        
+        // Encontrar por dónde iba si se pausó
+        while(this.nextNoteIndex < this.sequence.length && this.sequence[this.nextNoteIndex].time < this.elapsedTime) {
+            this.nextNoteIndex++;
+        }
+    },
+
+    pause() {
+        this.isPlaying = false;
+        if (this.ctx) {
+            this.elapsedTime = this.ctx.currentTime - this.startTime;
+        }
+    },
+
+    stop() {
+        this.isPlaying = false;
+        this.elapsedTime = 0;
+        this.nextNoteIndex = 0;
+    },
+
+    update() {
+        if (!this.isPlaying) return;
+        let now = this.ctx.currentTime - this.startTime;
+        this.elapsedTime = now;
+
+        while (this.nextNoteIndex < this.sequence.length && this.sequence[this.nextNoteIndex].time < now) {
+            let note = this.sequence[this.nextNoteIndex];
+            this.playTone(note.freq, note.type, 0.2, this.startTime + note.time);
+            if (note.isDrum) this.playDrum(this.startTime + note.time);
+            this.nextNoteIndex++;
+        }
+    }
+};
+
+// --- ESTRUCTURA DEL NIVEL PRINCIPAL OBLIGATORIO ---
+const weezerBeats = [1.2, 2.2, 3.2, 4.2, 5.2, 6.2, 7.2, 8.2, 9.2, 10.2, 11.2, 12.2, 13.2, 14.2, 15.2, 16.2, 17.2, 18.2, 19.2, 20.2];
 let globalOnlineLevels = [
     { 
         name: "Sweet Dreams (Weezer)", 
         creator: "Adrigc", 
-        bg: "#161623", 
+        bg: "#111a2e", 
         bulletColor: "#00ffff", 
-        track: weezerTrack, 
-        // Golpes rítmicos sincronizados con la intro y los versos de la canción
-        beats: [1.2, 2.4, 3.6, 4.8, 6.0, 7.2, 8.4, 9.6, 11.0, 12.2, 13.5, 14.8, 16.0, 17.2, 18.5, 20.0] 
-    },
-    { 
-        name: "Voxicat Madness", 
-        creator: "GD_Community", 
-        bg: "#340034", 
-        bulletColor: "#ff00ff", 
-        track: weezerTrack, 
-        beats: [0.5, 1.0, 1.5, 2.0, 2.8, 3.5, 4.0, 4.5, 5.2, 6.0] 
+        beats: weezerBeats 
     }
 ];
-
-let currentAudio = new Audio();
-currentAudio.crossOrigin = "anonymous"; 
 
 let gameState = 'MENU'; 
 let activeLevel = null;
@@ -48,11 +138,11 @@ let afterImages = [];
 let activeEvent = null;
 let eventTimer = 0;
 
-const rhythmBar = { x: 100, y: 510, width: 600, height: 45, speed: 380 };
+const rhythmBar = { x: 100, y: 510, width: 600, height: 45, speed: 350 };
 const DIRECTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
 const DIR_VECTORS = { 'UP': {x: 0, y: -90}, 'DOWN': {x: 0, y: 90}, 'LEFT': {x: -90, y: 0}, 'RIGHT': {x: 90, y: 0} };
 
-// --- GESTIÓN DE PANTALLAS (CORREGIDO PARA EVITAR FALLOS) ---
+// --- NAVEGACIÓN Y MENÚS ---
 function switchScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     
@@ -63,19 +153,17 @@ function switchScreen(screenId) {
     
     if(screenId === 'mainMenu') { 
         gameState = 'MENU'; 
-        currentAudio.pause(); 
+        AudioEngine.stop();
         document.getElementById('inGameUI').style.display = 'none';
     }
     if(screenId === 'onlineMenu') renderOnlineLevels();
     if(screenId === 'localLevelsMenu') renderLocalLevels();
 }
-
-// Hacer la función accesible globalmente para los botones HTML antiguos
 window.switchScreen = switchScreen;
 
 function renderLocalLevels() {
     const list = document.getElementById('localLevelList');
-    list.innerHTML = localLevels.length === 0 ? '<div style="text-align:center;color:#666;padding:20px;">No tienes niveles creados.</div>' : '';
+    list.innerHTML = localLevels.length === 0 ? '<div style="text-align:center;color:#888;padding:20px;">No tienes niveles creados.</div>' : '';
     
     localLevels.forEach((lvl, idx) => {
         const item = document.createElement('div');
@@ -86,7 +174,7 @@ function renderLocalLevels() {
         btn.className = 'btn-action';
         btn.style.background = '#52c234';
         btn.innerText = '▶';
-        btn.addEventListener('click', () => playSelectedLevel(idx, 'local'));
+        btn.addEventListener('click', () => playDirectLevel(lvl));
         
         item.appendChild(btn);
         list.appendChild(item);
@@ -97,13 +185,8 @@ function renderOnlineLevels(filter = "") {
     const list = document.getElementById('onlineLevelList');
     list.innerHTML = "";
     
-    const totalDatabase = [...globalOnlineLevels, ...localLevels.map(l => ({...l, creator: "MiAppLocal"}))];
+    const totalDatabase = [...globalOnlineLevels, ...localLevels.map(l => ({...l, creator: "Local"}))];
     const filtered = totalDatabase.filter(l => l.name.toLowerCase().includes(filter.toLowerCase()));
-
-    if(filtered.length === 0) {
-        list.innerHTML = '<div style="text-align:center;color:#666;padding:20px;">Sin resultados globales.</div>';
-        return;
-    }
 
     filtered.forEach(lvl => {
         const item = document.createElement('div');
@@ -124,48 +207,40 @@ window.searchLevels = function() {
     renderOnlineLevels(document.getElementById('searchInput').value);
 };
 
-// --- MODO EDITOR EN VIVO ---
+// --- MODO GRABADOR / CREACIÓN DE NIVELES NATIVO ---
 window.startRhythmMapping = function() {
+    AudioEngine.init();
     activeLevel = {
-        name: document.getElementById('levelNameInput').value || "Nuevo Nivel",
-        track: document.getElementById('levelAudioInput').value || weezerTrack,
+        name: document.getElementById('levelNameInput').value || "Mi Ritmo Cat",
         bg: document.getElementById('levelBgInput').value,
         bulletColor: document.getElementById('levelBulletColor').value,
         beats: []
     };
     mappedBeats = [];
-    switchScreen('none'); // Oculta las demás interfaces
+    switchScreen('none'); 
     gameState = 'MAPPING_EDITOR';
     
-    currentAudio.src = activeLevel.track;
-    currentAudio.load();
-    currentAudio.play().catch(() => {
-        currentAudio.src = weezerTrack;
-        currentAudio.play();
-    });
+    AudioEngine.setupWeezerTrack();
+    AudioEngine.play();
 };
 
 function saveCreatedLevel() {
-    if(mappedBeats.length === 0) return alert("¡Toca la pantalla al ritmo antes de guardar!");
+    if(mappedBeats.length === 0) {
+        alert("¡Toca la pantalla al compás de la música antes de guardar!");
+        return;
+    }
     activeLevel.beats = [...mappedBeats];
     localLevels.push(activeLevel);
     localStorage.setItem('cat_dash_local_levels', JSON.stringify(localLevels));
-    currentAudio.pause();
+    AudioEngine.stop();
     switchScreen('localLevelsMenu');
 }
 
-// --- GAMEPLAY MOTOR ---
-function playSelectedLevel(index, type) {
-    activeLevel = type === 'local' ? localLevels[index] : globalOnlineLevels[index];
-    initGameplay();
-}
-
+// --- CONFIGURACIÓN DE PARTIDA ---
 function playDirectLevel(lvlObj) {
+    AudioEngine.init();
     activeLevel = lvlObj;
-    initGameplay();
-}
-
-function initGameplay() {
+    
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('inGameUI').style.display = 'block';
     
@@ -179,22 +254,22 @@ function initGameplay() {
         rhythmPoints.push({ triggerTime: t, direction: DIRECTIONS[Math.floor(Math.random()*4)], spawned: false, hit: false, x: rhythmBar.x + rhythmBar.width });
     });
 
-    currentAudio.src = activeLevel.track;
-    currentAudio.load();
-    currentAudio.play().catch(() => {
-        currentAudio.src = weezerTrack;
-        currentAudio.play();
-    });
+    AudioEngine.setupWeezerTrack();
+    AudioEngine.play();
 }
 
-// --- CONTROLES MÓVILES / MOUSE ---
+// --- CONTROLES GENERALES (PANTALLA TÁCTIL E INPUTS) ---
 let touchStart = { x: 0, y: 0 };
 let isInteracting = false;
 
 function handleStart(x, y) {
     if (gameState === 'MAPPING_EDITOR') {
-        if(x >= 250 && x <= 550 && y >= 500 && y <= 550) return saveCreatedLevel();
-        mappedBeats.push(currentAudio.currentTime);
+        // Detectar si presionó el botón verde de guardar en pantalla
+        if(x >= 250 && x <= 550 && y >= 500 && y <= 550) {
+            saveCreatedLevel();
+            return;
+        }
+        mappedBeats.push(AudioEngine.elapsedTime);
         createParticles(x, y, '#00ffcc');
         return;
     }
@@ -204,7 +279,7 @@ function handleStart(x, y) {
 function handleMove(x, y) {
     if (!isInteracting || gameState !== 'PLAYING') return;
     const dx = x - touchStart.x; const dy = y - touchStart.y;
-    if (Math.abs(dx) > 35 || Math.abs(dy) > 35) {
+    if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
         checkSwipe(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'RIGHT' : 'LEFT') : (dy > 0 ? 'DOWN' : 'UP'));
         isInteracting = false;
     }
@@ -213,6 +288,7 @@ function handleMove(x, y) {
 canvas.addEventListener('mousedown', (e) => { const r = canvas.getBoundingClientRect(); handleStart((e.clientX - r.left)*(800/r.width), (e.clientY - r.top)*(600/r.height)); });
 canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); handleMove((e.clientX - r.left)*(800/r.width), (e.clientY - r.top)*(600/r.height)); });
 window.addEventListener('mouseup', () => isInteracting = false);
+
 canvas.addEventListener('touchstart', (e) => { const r = canvas.getBoundingClientRect(); const t = e.touches[0]; handleStart((t.clientX - r.left)*(800/r.width), (t.clientY - r.top)*(600/r.height)); });
 canvas.addEventListener('touchmove', (e) => { const r = canvas.getBoundingClientRect(); const t = e.touches[0]; handleMove((t.clientX - r.left)*(800/r.width), (t.clientY - r.top)*(600/r.height)); });
 window.addEventListener('touchend', () => isInteracting = false);
@@ -221,12 +297,12 @@ function checkSwipe(dir) {
     let success = false;
     for (let pt of rhythmPoints) {
         let distance = Math.abs(pt.x - rhythmBar.x);
-        if (distance < 45 && pt.direction === dir && !pt.hit && pt.spawned) {
+        if (distance < 50 && pt.direction === dir && !pt.hit && pt.spawned) {
             pt.hit = true; success = true; currentScore += 10;
             document.getElementById('scoreHUD').innerText = "PUNTOS: " + currentScore;
             for(let i=1; i<=3; i++) afterImages.push({ x: cat.x, y: cat.y, alpha: 0.6 - (i*0.15), delay: i*3, radius: cat.radius });
             const vec = DIR_VECTORS[dir]; cat.targetX = 400 + vec.x; cat.targetY = 300 + vec.y;
-            cat.squishX = (dir==='LEFT'||dir==='RIGHT')?1.5:0.5; cat.squishY = (dir==='UP'||dir==='DOWN')?1.5:0.5;
+            cat.squishX = (dir==='LEFT'||dir==='RIGHT')?1.4:0.6; cat.squishY = (dir==='UP'||dir==='DOWN')?1.4:0.6;
             createParticles(pt.x, rhythmBar.y + rhythmBar.height/2, '#00ffcc');
             break;
         }
@@ -241,43 +317,41 @@ function spawnBullet(dir) {
 }
 
 function createParticles(x, y, color) {
-    for (let i = 0; i < 8; i++) particles.push({ x, y, vx: (Math.random()-0.5)*7, vy: (Math.random()-0.5)*7, radius: Math.random()*4+2, alpha: 1, color });
+    for (let i = 0; i < 8; i++) particles.push({ x, y, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, radius: Math.random()*3+2, alpha: 1, color });
 }
 
-// --- VÍNCULOS SEGUROS CON LOS BOTONES DE LA INTERFAZ ---
+// --- ASIGNACIÓN DE BOTONES HUD ---
 document.getElementById('playBtn').addEventListener('click', () => {
-    // El botón verde central ahora abre directamente el nivel de Weezer
-    playDirectLevel(globalOnlineLevels[0]);
+    playDirectLevel(globalOnlineLevels[0]); // Abre inmediatamente Sweet Dreams
 });
-
 document.getElementById('pauseBtn').addEventListener('click', () => { 
-    if(gameState==='PLAYING'){ gameState='PAUSED'; currentAudio.pause(); switchScreen('pauseMenu'); } 
+    if(gameState=='PLAYING'){ gameState='PAUSED'; AudioEngine.pause(); switchScreen('pauseMenu'); } 
 });
-
 document.getElementById('resumeBtn').addEventListener('click', () => { 
     document.getElementById('pauseMenu').classList.remove('active'); 
     document.getElementById('inGameUI').style.display='block'; 
     gameState='PLAYING'; 
-    currentAudio.play(); 
+    AudioEngine.play(); 
 });
-
 document.getElementById('exitBtn').addEventListener('click', () => switchScreen('mainMenu'));
 
-// --- BUCLE CENTRAL DE ACTUALIZACIÓN ---
+// --- LOOP DINÁMICO ---
 let lastTime = 0;
 function coreLoop(timestamp) {
     let dt = (timestamp - lastTime) / 1000; if(isNaN(dt)) dt = 0; lastTime = timestamp;
+
+    AudioEngine.update();
 
     ctx.fillStyle = (gameState==='PLAYING'||gameState==='MAPPING_EDITOR') ? activeLevel.bg : '#11111e';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (gameState === 'PLAYING') {
-        let currentTime = currentAudio.currentTime;
+        let currentTime = AudioEngine.elapsedTime;
         eventTimer += dt;
-        if(eventTimer > 12) {
+        if(eventTimer > 14) {
             eventTimer = 0; activeEvent = Math.random() > 0.5 ? 'SPEED_UP' : 'CEGUERA';
             const al = document.getElementById('eventAlert'); al.innerText = activeEvent==='SPEED_UP'?"¡ACELERACIÓN!":"¡OSCURIDAD!";
-            al.style.display = 'block'; setTimeout(() => al.style.display = 'none', 2500);
+            al.style.display = 'block'; setTimeout(() => al.style.display = 'none', 2000);
         }
 
         let currentBarSpeed = rhythmBar.speed * (activeEvent === 'SPEED_UP' ? 1.35 : 1);
@@ -288,52 +362,51 @@ function coreLoop(timestamp) {
             if (pt.spawned && !pt.hit) pt.x = rhythmBar.x + ((pt.triggerTime - currentTime) * currentBarSpeed);
         });
 
-        // Dibujar Barra
-        ctx.fillStyle = 'rgba(40, 40, 60, 0.8)'; ctx.fillRect(rhythmBar.x, rhythmBar.y, rhythmBar.width, rhythmBar.height);
-        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(rhythmBar.x, rhythmBar.y + rhythmBar.height/2, 30, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        // Dibujar Barra de Ritmo
+        ctx.fillStyle = 'rgba(30, 30, 50, 0.85)'; ctx.fillRect(rhythmBar.x, rhythmBar.y, rhythmBar.width, rhythmBar.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(rhythmBar.x, rhythmBar.y + rhythmBar.height/2, 25, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
-        // Notas
+        // Notas flotantes
         rhythmPoints.forEach(pt => {
             if (pt.spawned && !pt.hit && pt.x >= rhythmBar.x - 30) {
-                ctx.fillStyle = '#00e5ff'; ctx.beginPath(); ctx.arc(pt.x, rhythmBar.y+rhythmBar.height/2, 18, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#000'; ctx.font = 'bold 18px Arial';
-                ctx.fillText(pt.direction==='UP'?'↑':pt.direction==='DOWN'?'↓':pt.direction==='LEFT'?'←':'→', pt.x-7, rhythmBar.y+rhythmBar.height/2+6);
+                ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(pt.x, rhythmBar.y+rhythmBar.height/2, 16, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.font = 'bold 16px Arial';
+                ctx.fillText(pt.direction==='UP'?'↑':pt.direction==='DOWN'?'↓':pt.direction==='LEFT'?'←':'→', pt.x-6, rhythmBar.y+rhythmBar.height/2+6);
             }
         });
 
-        // Estelas (After images)
+        // Movimiento de Estelas
         afterImages.forEach((img, i) => {
             img.delay--;
             if(img.delay <= 0) {
-                ctx.save(); ctx.globalAlpha = img.alpha; ctx.fillStyle = '#00e5ff';
+                ctx.save(); ctx.globalAlpha = img.alpha; ctx.fillStyle = '#00ffff';
                 ctx.beginPath(); ctx.arc(img.x, img.y, img.radius, 0, Math.PI*2); ctx.fill(); ctx.restore();
-                img.alpha -= 0.08; if(img.alpha <= 0) afterImages.splice(i, 1);
+                img.alpha -= 0.1; if(img.alpha <= 0) afterImages.splice(i, 1);
             }
         });
 
-        // Lerp del Gato
-        cat.x += (cat.targetX - cat.x) * 0.22; cat.y += (cat.targetY - cat.y) * 0.22;
-        cat.targetX += (400 - cat.targetX) * 0.06; cat.targetY += (300 - cat.targetY) * 0.06;
-        cat.squishX += (1 - cat.squishX) * 0.12; cat.squishY += (1 - cat.squishY) * 0.12;
+        // Físicas del Gato
+        cat.x += (cat.targetX - cat.x) * 0.2; cat.y += (cat.targetY - cat.y) * 0.2;
+        cat.targetX += (400 - cat.targetX) * 0.05; cat.targetY += (300 - cat.targetY) * 0.05;
+        cat.squishX += (1 - cat.squishX) * 0.1; cat.squishY += (1 - cat.squishY) * 0.1;
 
         ctx.save(); ctx.translate(cat.x, cat.y); ctx.scale(cat.squishX, cat.squishY); ctx.fillStyle = cat.color;
         ctx.beginPath(); ctx.arc(0, 0, cat.radius, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(-12,-15); ctx.lineTo(-22,-32); ctx.lineTo(-4,-20); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(12,-15); ctx.lineTo(22,-32); ctx.lineTo(4,-20); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-10,-15); ctx.lineTo(-20,-30); ctx.lineTo(-3,-18); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10,-15); ctx.lineTo(20,-30); ctx.lineTo(3,-18); ctx.fill();
         ctx.restore();
 
-        // Proyectiles
-        let bColor = activeLevel.bulletColor || '#ffaa00';
+        // Ataque de Proyectiles
+        let bColor = activeLevel.bulletColor || '#00ffff';
         for(let i=bullets.length-1; i>=0; i--) {
             let b = bullets[i]; b.progress += b.speed * dt;
             let bx = b.x + (b.targetX - b.x)*b.progress; let by = b.y + (b.targetY - b.y)*b.progress;
-            ctx.fillStyle = bColor; ctx.shadowColor = bColor; ctx.shadowBlur = 10;
-            ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            ctx.fillStyle = bColor; ctx.beginPath(); ctx.arc(bx, by, 8, 0, Math.PI*2); ctx.fill();
 
             if(b.progress >= 1.0) {
-                if(Math.hypot(cat.x - b.targetX, cat.y - b.targetY) < 35) {
-                    createParticles(cat.x, cat.y, '#ff0000'); currentScore = Math.max(0, currentScore - 6);
+                if(Math.hypot(cat.x - b.targetX, cat.y - b.targetY) < 32) {
+                    createParticles(cat.x, cat.y, '#ff3333'); currentScore = Math.max(0, currentScore - 5);
                     document.getElementById('scoreHUD').innerText = "PUNTOS: " + currentScore;
                 }
                 bullets.splice(i,1);
@@ -341,24 +414,30 @@ function coreLoop(timestamp) {
         }
 
         if(activeEvent === 'CEGUERA') {
-            ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.beginPath(); ctx.arc(cat.x, cat.y, 135, 0, Math.PI*2); ctx.rect(800,0,-800,600); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.beginPath(); ctx.arc(cat.x, cat.y, 120, 0, Math.PI*2); ctx.rect(800,0,-800,600); ctx.fill();
         }
 
-        if(currentAudio.ended) { alert(`¡Completado!\nScore: ${currentScore}`); switchScreen('mainMenu'); }
+        if(AudioEngine.elapsedTime >= AudioEngine.duration) { 
+            alert(`¡Nivel Terminado!\nPuntuación final: ${currentScore}`); 
+            switchScreen('mainMenu'); 
+        }
     }
 
     if (gameState === 'MAPPING_EDITOR') {
-        ctx.fillStyle = 'white'; ctx.font = '20px Arial';
-        ctx.fillText(`Notas capturadas: ${mappedBeats.length}`, 30, 50);
-        ctx.fillText(`Tiempo: ${currentAudio.currentTime.toFixed(2)}s`, 30, 80);
+        ctx.fillStyle = 'white'; ctx.font = '22px Arial';
+        ctx.fillText(`Notas capturadas: ${mappedBeats.length}`, 40, 60);
+        ctx.fillText(`Tiempo actual: ${AudioEngine.elapsedTime.toFixed(2)}s`, 40, 95);
+        ctx.fillText("Toca cualquier parte negra para capturar un ritmo", 40, 140);
+        
         ctx.fillStyle = '#52c234'; ctx.fillRect(250, 500, 300, 50);
-        ctx.fillStyle = 'white'; ctx.fillText("GUARDAR RITMO", 330, 532);
-        if(currentAudio.ended) saveCreatedLevel();
+        ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.fillText("GUARDAR RITMO", 335, 532);
+        
+        if(AudioEngine.elapsedTime >= AudioEngine.duration) saveCreatedLevel();
     }
 
-    // Partículas
+    // Dibujado de partículas de impacto
     for(let i=particles.length-1; i>=0; i--) {
-        let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= dt * 2.2;
+        let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= dt * 2;
         if(p.alpha <= 0) { particles.splice(i,1); continue; }
         ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
@@ -369,4 +448,4 @@ function coreLoop(timestamp) {
 }
 
 requestAnimationFrame(coreLoop);
-
+ 
