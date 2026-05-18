@@ -8,50 +8,61 @@
 </head>
 <body>
 
-    <!-- MENÚ PRINCIPAL -->
-    <div id="main-menu" class="menu-overlay">
-        <h1>SHADOW CAT DASH</h1>
-        <p class="subtitle">Edición Jujutsu Kaisen</p>
-        
-        <div class="auth-section">
-            <input type="text" id="username" placeholder="Usuario">
-            <button onclick="login()">Iniciar Sesión</button>
-            <span id="auth-status">Modo Invitado (Progreso Local)</span>
-        </div>
-
-        <div class="menu-buttons">
-            <button class="btn-main" onclick="startGame()">JUGAR</button>
-            <button class="btn-main" onclick="openShop()">TIENDA SKINS</button>
-        </div>
-    </div>
-
-    <!-- TIENDA DE SKINS -->
-    <div id="shop-menu" class="menu-overlay hidden">
-        <h2>TIENDA DE SKINS (JJK)</h2>
-        <div class="skins-grid">
-            <div class="skin-card" onclick="selectSkin('shadow')">
-                <div class="skin-preview" id="prev-shadow"></div>
-                <p>Gato Sombra (Base)</p>
-            </div>
-            <div class="skin-card" onclick="selectSkin('gojo')">
-                <div class="skin-preview" id="prev-gojo"></div>
-                <p>Gato Gojo (6 Limitless)</p>
-            </div>
-            <div class="skin-card" onclick="selectSkin('sukuna')">
-                <div class="skin-preview" id="prev-sukuna"></div>
-                <p>Gato Sukuna (Maldición)</p>
-            </div>
-        </div>
-        <button class="btn-back" onclick="closeShop()">Volver al Menú</button>
-    </div>
-
-    <!-- PANTALLA DE JUEGO -->
     <div id="game-container">
+        
         <div id="hud">
-            <span id="level-display">Nivel: 1</span>
-            <span id="score-display">Intentos: 1</span>
+            <span id="level-display">NIVEL: 1</span>
+            <span id="score-display">INTENTOS: 1</span>
         </div>
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+        <div id="main-menu" class="menu-overlay">
+            
+            <div class="top-left-auth">
+                <input type="text" id="username" placeholder="Gamer ID">
+                <button onclick="login()">GUARDAR EN NUBE</button>
+                <span id="auth-status">Perfil Local Auto</span>
+            </div>
+
+            <div class="title-container">
+                <h1>SHADOW CAT DASH</h1>
+                <p class="subtitle">Jujutsu Kaisen Edition</p>
+            </div>
+
+            <div class="center-play-button" onclick="startGame()">
+                <div class="play-triangle"></div>
+            </div>
+
+            <div class="bottom-row">
+                <button class="btn-gd-sub" onclick="openShop()" title="Skins JJK">👕</button>
+                <button class="btn-gd-sub btn-builder" onclick="alert('¡Próximamente: Constructor de niveles en camino!')" title="Builder">🛠️</button>
+            </div>
+
+        </div>
+
+        <div id="shop-menu" class="menu-overlay hidden" style="background: rgba(0,0,0,0.6); justify-content: center;">
+            <div class="gd-modal">
+                <button class="btn-close-modal" onclick="closeShop()">X</button>
+                <h2 class="modal-title">SELECCIONA TU SKIN JJK</h2>
+                
+                <div class="skins-grid">
+                    <div class="skin-card" onclick="selectSkin('shadow')">
+                        <canvas id="skin-prev-shadow" class="skin-preview-canvas" width="50" height="50"></canvas>
+                        <p>Shadow Cat</p>
+                    </div>
+                    <div class="skin-card" onclick="selectSkin('gojo')">
+                        <canvas id="skin-prev-gojo" class="skin-preview-canvas" width="50" height="50"></canvas>
+                        <p>Gojo Satoru</p>
+                    </div>
+                    <div class="skin-card" onclick="selectSkin('sukuna')">
+                        <canvas id="skin-prev-sukuna" class="skin-preview-canvas" width="50" height="50"></canvas>
+                        <p>Sukuna Cat</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script src="game.js"></script>
