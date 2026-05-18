@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dash Cat: Rhythm Evolved</title>
-    <!-- Vinculamos los estilos externos -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="gameContainer">
-    <!-- El lienzo del juego -->
     <canvas id="gameCanvas"></canvas>
 
     <!-- HUD de partida activa -->
@@ -75,8 +73,8 @@
                     <input type="text" id="levelNameInput" value="Cat Step">
                 </div>
                 <div class="form-group">
-                    <label>Audio URL (Asegúrate de usar links estables libres de CORS):</label>
-                    <input type="text" id="levelAudioInput" value="https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1MB_MP3.mp3">
+                    <label>Audio URL:</label>
+                    <input type="text" id="levelAudioInput" value="">
                 </div>
                 <div class="form-group">
                     <label>Fondo de Escenario:</label>
@@ -100,8 +98,6 @@
     </div>
 </div>
 
-<!-- Vinculamos el motor del juego al final para que cargue la interfaz primero -->
 <script src="game.js"></script>
 </body>
 </html>
-
