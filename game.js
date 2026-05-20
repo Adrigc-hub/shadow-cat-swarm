@@ -4,93 +4,87 @@ const ctx = canvas.getContext('2d');
 function resize() { canvas.width = 1280; canvas.height = 720; }
 resize(); window.addEventListener('resize', resize);
 
-let currentLevel = 0; // 0 = Menú, 1-4 = Niveles, 5 = Boss "Fun Time"
+let currentLevel = 0; 
 let menu = new GDMenu(canvas, ctx, launchLevel);
 let boss = null;
 
-// Lógica de flechas rítmicas inferiores
-let notes = [];
-let noteSymbols = { left: "◀", up: "▲", right: "▶", down: "▼" };
-let triggerLineX = 140; // Línea blanca exacta de impacto
+// Ubicación exacta del jugador en el centro geométrico de la pantalla
+const centerX = 1280 / 2;
+const centerY = 720 / 2;
+
 let score = 0;
+let incomingNotes = []; // Notas/Obstáculos que viajan hacia el centro
+let noteSymbols = { left: "◀", up: "▲", right: "▶", down: "▼" };
+let hitZoneRadius = 75; // Rango circular de impacto alrededor de Pixie
 
-// Obstáculos del juego superior (Niveles 1-4)
-let obstacles = [];
-let gameDistance = 0;
-
-// Seguimiento del gesto de arrastrar (Swipe)
 let dragStart = { x: 0, y: 0 };
 
 function launchLevel(lvlNum) {
     currentLevel = lvlNum;
-    score = 0; notes = []; obstacles = []; gameDistance = 0;
+    score = 0; incomingNotes = [];
     
     if (lvlNum === 5) {
         boss = new BossLevel(canvas, ctx);
-    } else {
-        // Generar mapa con obstáculos reales (Pinchos, Sierras y Portales de color de GD)
-        for(let i = 0; i < 40; i++) {
-            let ox = 800 + i * 350;
-            let type = i % 3 === 0 ? "spike" : i % 3 === 1 ? "saw" : "portal";
-            obstacles.push({ x: ox, type: type, passed: false });
-        }
     }
 
-    // Cargar ráfaga de notas musicales rítmicas
-    for (let n = 0; n < 80; n++) {
-        let dirs = ["left", "up", "right", "down"];
-        notes.push({
-            x: 500 + n * 240,
-            dir: dirs[Math.floor(Math.random() * dirs.length)],
+    // Generador de ráfagas rítmicas multidireccionales (Llegan desde los 4 flancos)
+    for (let i = 0; i < 100; i++) {
+        let directions = ["left", "up", "right", "down"];
+        let dir = directions[Math.floor(Math.random() * directions.length)];
+        
+        // Coordenadas de inicio lejanas (fuera de la pantalla)
+        let spawnX = centerX, spawnY = centerY;
+        if (dir === "left")  spawnX = centerX - 700 - (i * 200);
+        if (dir === "right") spawnX = centerX + 700 + (i * 200);
+        if (dir === "up")    spawnY = centerY - 500 - (i * 200);
+        if (dir === "down")  spawnY = centerY + 500 + (i * 200);
+
+        incomingNotes.push({
+            x: spawnX,
+            y: spawnY,
+            dir: dir,
+            dist: Math.hypot(spawnX - centerX, spawnY - centerY),
             resolved: false
         });
     }
 }
 
-// --- CAPTURA DE ACCIONES DE DESLIZAMIENTO (MOUSE O IPAD) ---
-function onSwipeStart(x, y) {
-    dragStart.x = x; dragStart.y = y;
-}
+// --- PROCESADOR DE SWIPES (MOUSE / PANTALLA TÁCTIL IPAD) ---
+function onSwipeStart(x, y) { dragStart.x = x; dragStart.y = y; }
 
 function onSwipeEnd(x, y) {
     let dx = x - dragStart.x; let dy = y - dragStart.y;
-    let minSwipe = 25; // Precisión del raspado
-    let actionDir = null;
+    let threshold = 25;
+    let swipedDir = null;
 
     if (Math.abs(dx) > Math.abs(dy)) {
-        if (Math.abs(dx) > minSwipe) actionDir = dx > 0 ? "right" : "left";
+        if (Math.abs(dx) > threshold) swipedDir = dx > 0 ? "right" : "left";
     } else {
-        if (Math.abs(dy) > minSwipe) actionDir = dy > 0 ? "down" : "up";
+        if (Math.abs(dy) > threshold) swipedDir = dy > 0 ? "down" : "up";
     }
 
-    if (actionDir) verifyHit(actionDir);
+    if (swipedDir) checkNoteHit(swipedDir);
 }
 
-function verifyHit(dir) {
-    let threshold = 45; // Ventana de tiempo/píxeles perfecta
-    let target = notes.find(n => !n.resolved && Math.abs(n.x - triggerLineX) < threshold);
+function checkNoteHit(dir) {
+    // Buscar la nota más cercana al anillo de impacto de Pixie
+    let target = incomingNotes.find(n => !n.resolved && Math.abs(n.dist - hitZoneRadius) < 50);
 
     if (target && target.dir === dir) {
         target.resolved = true;
         score += 150;
         if (currentLevel === 5 && boss) {
-            boss.health -= 2.2; // Quitar vida real al jefe de las 10 fases
+            boss.health -= 1.8; // Desgasta la fase del jefe
         }
     }
 }
 
-// Vinculación de periféricos y toques de pantalla táctil
+// Vinculación de periféricos
 canvas.addEventListener('mousedown', e => {
     let r = canvas.getBoundingClientRect();
     let mx = (e.clientX - r.left) * (canvas.width / r.width);
     let my = (e.clientY - r.top) * (canvas.height / r.height);
     if(currentLevel === 0) menu.click(mx, my); else onSwipeStart(mx, my);
-});
-canvas.addEventListener('mousemove', e => {
-    if (currentLevel === 0 && (menu.isDraggingMusic || menu.isDraggingSFX)) {
-        let r = canvas.getBoundingClientRect();
-        menu.moveSlider((e.clientX - r.left) * (canvas.width / r.width));
-    }
 });
 canvas.addEventListener('mouseup', e => {
     if(currentLevel === 0) { menu.isDraggingMusic = false; menu.isDraggingSFX = false; }
@@ -99,8 +93,14 @@ canvas.addEventListener('mouseup', e => {
         onSwipeEnd((e.clientX - r.left) * (canvas.width / r.width), (e.clientY - r.top) * (canvas.height / r.height));
     }
 });
+canvas.addEventListener('mousemove', e => {
+    if (currentLevel === 0 && (menu.isDraggingMusic || menu.isDraggingSFX)) {
+        let r = canvas.getBoundingClientRect();
+        menu.moveSlider((e.clientX - r.left) * (canvas.width / r.width));
+    }
+});
 
-// Soporte completo para iPad / Android Touch
+// Toques nativos de iPad
 canvas.addEventListener('touchstart', e => {
     let r = canvas.getBoundingClientRect();
     let tx = (e.touches[0].clientX - r.left) * (canvas.width / r.width);
@@ -114,91 +114,102 @@ canvas.addEventListener('touchend', e => {
     }
 });
 
-// --- MOTOR GRÁFICO GENERAL DE JUEGO (LOOP) ---
-function run() {
+// --- DIBUJAR A PIXIE (FABULOUS BEASTS) ---
+function drawPixie(x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    let pulse = Math.sin(Date.now() * 0.008);
+
+    // 1. Alas mágicas traseras traslúcidas (Destellos de polvo de hada)
+    ctx.fillStyle = "rgba(0, 255, 200, 0.4)";
+    ctx.beginPath();
+    ctx.ellipse(-30, -10 + pulse*4, 15, 35, Math.PI/4, 0, Math.PI*2);
+    ctx.ellipse(30, -10 + pulse*4, 15, 35, -Math.PI/4, 0, Math.PI*2);
+    ctx.fill();
+
+    // 2. Cuerpo base de Pixie (Sombra estilizada mística)
+    ctx.fillStyle = "#1e1e2f"; ctx.strokeStyle = "#00ffcc"; ctx.lineWidth = 3;
+    ctx.fillRect(-22, -22, 44, 44); ctx.strokeRect(-22, -22, 44, 44);
+
+    // 3. Orejas puntiagudas distintivas
+    ctx.fillStyle = "#1e1e2f"; ctx.beginPath();
+    ctx.moveTo(-22, -22); ctx.lineTo(-28, -42); ctx.lineTo(-8, -22); ctx.fill();
+    ctx.moveTo(22, -22); ctx.lineTo(28, -42); ctx.lineTo(8, -22); ctx.fill();
+
+    // 4. Ojos neón encendidos y Gema del Alma central
+    ctx.fillStyle = "#00ffcc";
+    ctx.fillRect(-12, -8, 6, 6); ctx.fillRect(6, -8, 6, 6); // Ojos
+    
+    // Gema de poder en el pecho (Rombo)
+    ctx.fillStyle = "#ff0077"; ctx.beginPath();
+    ctx.moveTo(0, 5); ctx.lineTo(8, 12); ctx.lineTo(0, 19); ctx.lineTo(-8, 12);
+    ctx.closePath(); ctx.fill();
+
+    ctx.restore();
+}
+
+// --- LOOP PRINCIPAL DE RENDERIZADO OMNIDIRECCIONAL ---
+function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (currentLevel === 0) {
         menu.update(); menu.render();
     } else {
-        // --- RENDERIZADO DEL NIVEL ---
+        // Ejecutar fondo del escenario según corresponda
         if (currentLevel === 5 && boss) {
-            boss.update(); boss.render();
+            boss.update();
+            boss.render(centerX, centerY);
             if (boss.health <= 0) {
-                alert("¡Felicidades! Destruiste al jefe en sus 10 fases de Fun Time.");
+                alert("¡Nivel FUN TIME superado con Pixie!");
                 currentLevel = 0; menu.screen = "main";
             }
         } else {
-            // NIVELES 1 AL 4 DECORADOS (Fondos degradados neón con obstáculos móviles)
-            let colors = ["#0d47a1", "#4a148c", "#1b5e20", "#e65100"];
-            ctx.fillStyle = colors[currentLevel - 1]; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Dibujar suelo decorado estilo GD
-            ctx.fillStyle = "#000000"; ctx.fillRect(0, canvas.height - 220, canvas.width, 20);
-            ctx.fillStyle = "#00ffff"; ctx.fillRect(0, canvas.height - 200, canvas.width, 6);
-
-            // Mover y pintar los obstáculos reales del nivel
-            obstacles.forEach(obs => {
-                obs.x -= 5.5; // Velocidad de desplazamiento
-                ctx.save();
-                ctx.translate(obs.x, canvas.height - 220);
-
-                if (obs.type === "spike") {
-                    // Pincho clásico triangular de GD
-                    ctx.fillStyle = "#ff00a0"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(20, -40); ctx.lineTo(40, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
-                } else if (obs.type === "saw") {
-                    // Sierra circular rotatoria de peligro
-                    ctx.translate(20, -20); ctx.rotate(Date.now() * 0.01);
-                    ctx.fillStyle = "#333"; ctx.strokeStyle = "#ff0000"; ctx.lineWidth = 3;
-                    ctx.beginPath(); for(let k=0; k<12; k++) { let a=(Math.PI/6)*k; ctx.lineTo(Math.cos(a)*25, Math.sin(a)*25); ctx.lineTo(Math.cos(a+0.1)*15, Math.sin(a+0.1)*15); }
-                    ctx.closePath(); ctx.fill(); ctx.stroke();
-                } else if (obs.type === "portal") {
-                    // Portal de cambio de gravedad/velocidad de neón
-                    ctx.fillStyle = "#00ff66"; ctx.fillRect(0, -80, 15, 80);
-                }
-                ctx.restore();
-            });
+            // Niveles 1-4: Fondos neón espaciales rítmicos estilo arena
+            let bgs = ["#0a1128", "#1c0a26", "#051c12", "#261205"];
+            ctx.fillStyle = bgs[currentLevel - 1]; ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // --- RENDER DEL PERSONAJE (GATO DE SOMBRA) ---
-        let catY = canvas.height - 280;
-        ctx.fillStyle = "#141414"; ctx.strokeStyle = "#00ffff"; ctx.lineWidth = 3;
-        ctx.fillRect(120, catY, 55, 55); ctx.strokeRect(120, catY, 55, 55); // Cuerpo del icono
-        // Orejas de gato triangulares
-        ctx.fillStyle = "#141414";
-        ctx.beginPath(); ctx.moveTo(120, catY); ctx.lineTo(130, catY - 15); ctx.lineTo(140, catY); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(145, catY); ctx.lineTo(155, catY - 15); ctx.lineTo(165, catY); ctx.fill();
-        // Ojos encendidos en cian
-        ctx.fillStyle = "#00ffff"; ctx.fillRect(142, catY + 15, 8, 8); ctx.fillRect(158, catY + 15, 8, 8);
+        // --- INTERFAZ: Anillo Blanco de Impacto Perimetral ---
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(centerX, centerY, hitZoneRadius, 0, Math.PI * 2); ctx.stroke();
 
-        // --- TRACK DE RITMO INFERIOR (Estilo barra de flechas) ---
-        let trackY = canvas.height - 110;
-        ctx.fillStyle = "rgba(10, 14, 26, 0.85)"; ctx.fillRect(0, trackY, canvas.width, 110);
-        ctx.strokeStyle = "#00ffcc"; ctx.lineWidth = 3; ctx.strokeRect(0, trackY, canvas.width, 110);
+        // Línea guía de cruz para el posicionamiento de las flechas
+        ctx.strokeStyle = "rgba(0, 255, 200, 0.08)"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(centerX - 400, centerY); ctx.lineTo(centerX + 400, centerY); ctx.moveTo(centerX, centerY - 300); ctx.lineTo(centerX, centerY + 300); ctx.stroke();
 
-        // Línea blanca de impacto brillante
-        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 5; ctx.shadowColor = "#ffffff"; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.moveTo(triggerLineX, trackY); ctx.lineTo(triggerLineX, trackY + 110); ctx.stroke();
-        ctx.shadowBlur = 0;
+        // --- PROCESAR OBSTÁCULOS / NOTAS DESDE LOS BORDES ---
+        incomingNotes.forEach(note => {
+            if (!note.resolved) {
+                // Reducir la distancia hacia el centro continuamente
+                note.dist -= 4.5;
 
-        // Desplazamiento y renderizado de las notas de dirección
-        notes.forEach(note => {
-            note.x -= 4.8; // Desplazamiento continuo al ritmo
-            if (!note.resolved && note.x > 30) {
-                // Las notas cambian de color si están en rango óptimo de golpeo
-                ctx.fillStyle = Math.abs(note.x - triggerLineX) < 40 ? "#00ffcc" : "#ffcc00";
-                ctx.font = "bold 38px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(noteSymbols[note.dir], note.x, trackY + 68);
+                // Recalcular posiciones dinámicas en X e Y basándose en su distancia actual
+                if (note.dir === "left")  note.x = centerX - note.dist;
+                if (note.dir === "right") note.x = centerX + note.dist;
+                if (note.dir === "up")    note.y = centerY - note.dist;
+                if (note.dir === "down")  note.y = centerY + note.dist;
+
+                // Solo dibujar si no ha colapsado por completo en el punto cero
+                if (note.dist > 15) {
+                    // Si entra en la zona exacta de disparo, brilla en cian neón
+                    ctx.fillStyle = Math.abs(note.dist - hitZoneRadius) < 25 ? "#00ffff" : "#ffff00";
+                    ctx.font = "bold 34px Arial Black"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText(noteSymbols[note.dir], note.x, note.y);
+                }
             }
         });
 
-        // Interfaz de puntuación (Score en vivo arriba a la izquierda)
-        ctx.fillStyle = "#ffffff"; ctx.font = "26px 'Arial Black'"; ctx.textAlign = "left";
+        // Dibujar a nuestro personaje central
+        drawPixie(centerX, centerY);
+
+        // Marcador superior izquierdo
+        ctx.fillStyle = "#fff"; ctx.font = "24px 'Arial Black'"; ctx.textAlign = "left";
         ctx.fillText(`SCORE: ${score}`, 40, 50);
     }
 
-    requestAnimationFrame(run);
+    requestAnimationFrame(loop);
 }
-run();
+
+// Disparar motor
+loop();
