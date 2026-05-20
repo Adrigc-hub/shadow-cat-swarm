@@ -1,10 +1,9 @@
 class BossLevel {
     constructor(canvas, ctx) {
-        this.canvas = canvas; this.ctx = ctx;
+        this.canvas = canvas;
+        this.ctx = ctx;
         this.phase = 1;
         this.health = 100;
-        this.x = canvas.width / 2;
-        this.y = canvas.height / 2 - 80;
         this.timer = 0;
         this.weapons = [];
         this.bgFlash = 0;
@@ -12,131 +11,112 @@ class BossLevel {
 
     update() {
         this.timer += 0.05;
-        // Movimiento flotante robótico del boss
-        this.x = this.canvas.width / 2 + Math.sin(this.timer * 2) * 45;
-        this.y = this.canvas.height / 2 - 90 + Math.cos(this.timer * 1.2) * 25;
-
-        // El jefe muta y avanza de fase según la barra de vida superior
+        
+        // El jefe calcula su fase de 1 a 10 según la vida restante
         this.phase = Math.min(10, 11 - Math.ceil(this.health / 10));
 
-        // Armas mecánicas circulares que aumentan en cada fase (Igual que en el video)
+        // Configuración de ganchos, sierras y pinzas que encierran al jugador
         this.weapons = [];
         let totalWeapons = Math.min(this.phase + 2, 10);
+        
         for (let i = 0; i < totalWeapons; i++) {
-            let baseAngle = (Math.PI * 2 / totalWeapons) * i + (this.timer * 0.4);
-            // Las armas se estiran violentamente simulando el ataque del video
-            let reach = 95 + Math.sin(this.timer * 4 + i) * 35;
-            this.weapons.push({
-                angle: baseAngle,
-                len: reach,
-                type: i % 3 === 0 ? "saw" : i % 3 === 1 ? "hook" : "spike"
-            });
+            // Ángulos distribuidos en 360 grados apuntando al centro
+            let angle = (Math.PI * 2 / totalWeapons) * i + (this.timer * 0.3);
+            // Efecto de vaivén salvaje (ataque y retracción de maquinaria)
+            let radius = 220 + Math.sin(this.timer * 5 + i) * 40;
+            this.weapons.push({ angle, radius, type: i % 2 === 0 ? "saw" : "hook" });
         }
 
-        // Parpadeos estroboscópicos de fondo en fases críticas (Fase 5, 8 y 10)
+        // Flashes de alerta roja extrema en fases críticas
         if (this.phase === 5 || this.phase >= 8) {
-            this.bgFlash = Math.abs(Math.sin(this.timer * 6)) * 120;
+            this.bgFlash = Math.abs(Math.sin(this.timer * 7)) * 130;
         } else {
             this.bgFlash = 0;
         }
     }
 
-    render() {
-        const ctx = this.ctx; const w = this.canvas.width;
-        
-        // FONDO ROJO DE TERROR Y ALERTA (Fiel al video original)
-        ctx.fillStyle = `rgb(${110 + this.bgFlash}, 5, 10)`;
+    render(playerX, playerY) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+
+        // Fondo de alerta rojo oscuro del video
+        ctx.fillStyle = `rgb(${100 + this.bgFlash}, 8, 12)`;
         ctx.fillRect(0, 0, w, this.canvas.height);
 
-        // --- BARRA DE VIDA SUPERIOR SEGMENTADA ESTILO GD ---
+        // --- BARRA DE VIDA SUPERIOR SEGMENTADA (Fiel a tu captura) ---
         let bw = 460, bh = 22, bx = w / 2 - bw / 2, by = 40;
-        ctx.fillStyle = "#000000"; ctx.fillRect(bx, by, bw, bh);
-        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+        ctx.fillStyle = "#000"; ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
 
         let segments = 10;
         let segW = (bw - (segments - 1) * 4) / segments;
         for (let i = 0; i < segments; i++) {
-            // Se apagan los bloques rojos al quitarle vida
-            ctx.fillStyle = (i < Math.ceil(this.health / 10)) ? "#ff1a1a" : "#2b0000";
+            ctx.fillStyle = (i < Math.ceil(this.health / 10)) ? "#ff1a1a" : "#260000";
             ctx.fillRect(bx + i * (segW + 4), by, segW, bh);
         }
-        
-        // Marcador del Cubo Boss al final de su vida
+        // Icono de la barra del Boss
         ctx.fillStyle = "#ff2a2a"; ctx.fillRect(bx + bw + 12, by - 4, 30, 30);
-        ctx.fillStyle = "#000"; ctx.fillRect(bx + bw + 20, by + 4, 14, 8); // Ojo del icono
 
-        // --- DIBUJO DEL JEFE ---
-        ctx.save();
-        ctx.translate(this.x, this.y);
-
-        // 1. Renderizar los brazos mecánicos extensibles
+        // --- RENDERIZADO DEL JEFE (MAQUINARIA ENVOLVENTE) ---
         this.weapons.forEach(wp => {
-            ctx.strokeStyle = "#4d4d4d"; ctx.lineWidth = 8;
-            ctx.beginPath(); ctx.moveTo(0, 0);
-            let targetX = Math.cos(wp.angle) * wp.len;
-            let targetY = Math.sin(wp.angle) * wp.len;
-            ctx.lineTo(targetX, targetY); ctx.stroke();
+            // Calcular posición de la base del brazo mecánico (fuera de la pantalla)
+            let baseX = playerX + Math.cos(wp.angle) * 500;
+            let baseY = playerY + Math.sin(wp.angle) * 500;
+            
+            // Posición de la punta de ataque de la sierra/gancho
+            let tipX = playerX + Math.cos(wp.angle) * wp.radius;
+            let tipY = playerY + Math.sin(wp.angle) * wp.radius;
 
-            // Cabezales de ataque: Sierras circulares dentadas y anclas
+            // Dibujar estructura metálica del brazo
+            ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(tipX, tipY); ctx.stroke();
+            ctx.strokeStyle = "#555"; ctx.lineWidth = 4; ctx.stroke();
+
+            // Renderizado de las cabezas de las armas (Sierras giratorias del video)
             ctx.save();
-            ctx.translate(targetX, targetY);
-            ctx.rotate(this.timer * 5); // Rotación a mil por hora de las sierras
-            ctx.fillStyle = "#999999"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+            ctx.translate(tipX, tipY);
+            ctx.rotate(this.timer * 6); // Giro rápido de engranaje
+            
+            ctx.fillStyle = "#8c8c8c"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
             if (wp.type === "saw") {
-                // Dibujar dientes de sierra reales
                 ctx.beginPath();
-                for (let d = 0; d < 8; d++) {
-                    let a = (Math.PI / 4) * d;
-                    ctx.lineTo(Math.cos(a) * 22, Math.sin(a) * 22);
-                    ctx.lineTo(Math.cos(a + 0.2) * 14, Math.sin(a + 0.2) * 14);
+                for (let d = 0; d < 10; d++) {
+                    let a = (Math.PI / 5) * d;
+                    ctx.lineTo(Math.cos(a) * 25, Math.sin(a) * 25);
+                    ctx.lineTo(Math.cos(a + 0.1) * 16, Math.sin(a + 0.1) * 16);
                 }
                 ctx.closePath(); ctx.fill(); ctx.stroke();
             } else {
-                // Ancla o pinza pesada
-                ctx.fillRect(-12, -12, 24, 24);
-                ctx.fillStyle = "#ff3333"; ctx.fillRect(-5, -5, 10, 10);
+                // Pinzas mecánicas pesadas cuadradas
+                ctx.fillRect(-14, -14, 28, 28);
+                ctx.fillStyle = "#ff1a1a"; ctx.fillRect(-6, -6, 12, 12);
             }
             ctx.restore();
         });
 
-        // 2. Satélites flotantes gemelos laterales
-        ctx.fillStyle = "#262626"; ctx.strokeStyle = "#000000"; ctx.lineWidth = 4;
-        let sDist = 85 + Math.sin(this.timer * 3) * 12;
-        ctx.fillRect(-sDist - 15, -15, 30, 30); ctx.strokeRect(-sDist - 15, -15, 30, 30);
-        ctx.fillRect(sDist - 15, -15, 30, 30); ctx.strokeRect(sDist - 15, -15, 30, 30);
+        // Satélites flotantes que custodian los flancos del centro
+        ctx.fillStyle = "#222"; ctx.strokeStyle = "#000"; ctx.lineWidth = 4;
+        let sDist = 130 + Math.sin(this.timer * 3) * 15;
+        ctx.fillRect(playerX - sDist - 15, playerY - 15, 30, 30); ctx.strokeRect(playerX - sDist - 15, playerY - 15, 30, 30);
+        ctx.fillRect(playerX + sDist - 15, playerY - 15, 30, 30); ctx.strokeRect(playerX + sDist - 15, playerY - 15, 30, 30);
 
-        // Ojos de los satélites
-        ctx.fillStyle = "#ff1a1a";
-        ctx.fillRect(-sDist - 4, -4, 8, 8); ctx.fillRect(sDist - 4, -4, 8, 8);
-
-        // 3. El gran Cubo Central Gris Blindado
-        ctx.fillStyle = "#3a3a3a"; ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 6;
-        ctx.fillRect(-50, -50, 100, 100); ctx.strokeRect(-50, -50, 100, 100);
-        
-        // Placas internas del robot
-        ctx.fillStyle = "#2b2b2b"; ctx.fillRect(-35, -35, 70, 70);
-
-        // 4. El Ojo / Núcleo de Energía Variable
-        // Cambia a azul cian brillante en sobrecarga como en el segundo 0:08 del video
+        // Ojo central de energía cian/azul en sobrecarga (Seg 0:08 del video)
+        ctx.save();
+        ctx.translate(playerX, playerY - 160); // Flota arriba de Pixie
+        ctx.fillStyle = "#3a3a3a"; ctx.fillRect(-45, -45, 90, 90);
         let coreColor = (this.phase === 5 || this.phase === 10) ? "#00ffff" : "#ff1a1a";
-        ctx.fillStyle = coreColor; ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(-5, -5, 6, 0, Math.PI*2); ctx.fill(); // Brillo de lente
-
-        // Rayos cian brotando si el núcleo está sobrecargado
+        ctx.fillStyle = coreColor; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
+        
         if (this.phase === 5 || this.phase === 10) {
-            ctx.strokeStyle = "#00ffff"; ctx.lineWidth = 4;
-            for(let k=0; k<5; k++) {
-                ctx.beginPath();
-                ctx.moveTo(Math.random()*30-15, Math.random()*30-15);
-                ctx.lineTo(Math.random()*120-60, Math.random()*120-60);
-                ctx.stroke();
+            ctx.strokeStyle = "#00ffff"; ctx.lineWidth = 3;
+            for(let k=0; k<4; k++) {
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.random()*100-50, Math.random()*100-50); ctx.stroke();
             }
         }
-
         ctx.restore();
 
-        // Letrero indicador de fase actual
-        ctx.fillStyle = "#ffffff"; ctx.font = "22px 'Arial Black'"; ctx.textAlign = "center";
+        // Texto indicador de fase superior
+        ctx.fillStyle = "#fff"; ctx.font = "22px 'Arial Black'"; ctx.textAlign = "center";
         ctx.fillText(`FASE ${this.phase} / 10`, w / 2, 95);
     }
 }
